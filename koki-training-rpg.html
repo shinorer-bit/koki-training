@@ -522,6 +522,13 @@
 <div class="section-title">🏆 ACHIEVEMENTS</div>
 <div class="achievement-scroll" id="achievementScroll"></div>
 
+<!-- TRAINING LOG (振り返り) -->
+<div class="section-title" style="margin-top:16px">📖 これまでの記録</div>
+<div style="padding:0 12px 16px">
+  <div style="display:flex;gap:6px;margin-bottom:10px" id="logDateTabs"></div>
+  <div id="logEntries" style="max-height:300px;overflow-y:auto"></div>
+</div>
+
 <div class="game-footer">
   光揮の夏トレーニング 2026 ⚾ 7/6 – 8/30 | KITASUNA LITTLE LEAGUE<br>
   <button onclick="showRules(true)" style="margin-top:10px;background:rgba(255,215,0,0.1);border:1px solid var(--gold-dark);color:var(--gold);border-radius:20px;padding:8px 20px;font-size:12px;font-family:inherit;cursor:pointer">📜 トレーニングのルールを見る</button>
@@ -645,6 +652,7 @@ function renderAll(){
   renderCatTabs();
   renderTrainingMenu();
   renderAchievements();
+  renderLog();
   updateWeekDaysLeft();
 }
 
@@ -750,6 +758,36 @@ const ACTIVITY_PRESETS = {
   seki:     ['バッティング','投球','フィジカル','守備','リカバリー'],
   team:     ['試合出場','練習参加','ベンチ・応援'],
 };
+
+// 各「実施内容」がどのステータスに効くかのマッピング（1個につき+1〜2ポイント目安）
+const ACTIVITY_STAT_MAP = {
+  // バッティング系
+  '素振り': {bat:2}, 'ティーバッティング': {bat:2}, 'トスバッティング': {bat:2}, 'バント練習': {bat:1,men:1},
+  // 投球・守備系
+  'ゴロ捌き': {thr:2}, 'キャッチボール': {thr:2}, 'シャドウピッチング': {thr:2}, '守備練習': {thr:2},
+  // 走力・俊敏系
+  'ラダー': {run:2}, 'ダッシュ': {run:2}, '俊敏系ドリル': {run:2}, '走塁練習': {run:2},
+  // 体力・フィジカル系
+  'ジャンプ系トレーニング': {stam:2,run:1}, 'バランス系トレーニング': {stam:1,run:1},
+  '個人メドレー': {stam:2}, 'クロール': {stam:1,run:1}, '背泳ぎ': {stam:1,run:1},
+  '平泳ぎ': {stam:2}, 'バタフライ': {stam:2,run:1}, '基礎練習': {stam:1},
+  // セキ先生（カテゴリ名そのまま）
+  'バッティング': {bat:2}, '投球': {thr:2}, 'フィジカル': {run:1,stam:1}, '守備': {thr:1,run:1}, 'リカバリー': {stam:2,men:1},
+  // チーム練習・試合
+  '試合出場': {bat:1,thr:1,run:1,stam:1,men:2}, '練習参加': {bat:1,thr:1,run:1,stam:1,men:1}, 'ベンチ・応援': {men:2},
+};
+
+// 選ばれた実施内容リストから合算ステータスボーナスを計算
+function calcActivityStatBonus(activities){
+  const agg = {};
+  activities.forEach(a=>{
+    const map = ACTIVITY_STAT_MAP[a];
+    if(map){
+      Object.entries(map).forEach(([k,v])=>{ agg[k]=(agg[k]||0)+v; });
+    }
+  });
+  return agg;
+}
 
 function getDayDef(date) {
   const key = date.toISOString().slice(0,10);
@@ -1220,6 +1258,51 @@ function renderAchievements(){
   });
 }
 
+// ===== 実施ログ振り返り =====
+let logSelectedDate = new Date().toISOString().slice(0,10);
+
+function renderLog(){
+  const tabsEl = document.getElementById('logDateTabs');
+  const entriesEl = document.getElementById('logEntries');
+  if(!tabsEl || !entriesEl) return;
+
+  // 直近10日分のタブを生成（今日を含む）
+  tabsEl.innerHTML = '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  for(let i=0;i<10;i++){
+    const d = new Date(today); d.setDate(d.getDate()-i);
+    const dKey = d.toISOString().slice(0,10);
+    const hasLog = state.trainingLog && state.trainingLog[dKey] && state.trainingLog[dKey].length>0;
+    const btn = document.createElement('button');
+    btn.className = 'week-tab' + (logSelectedDate===dKey ? ' active' : '');
+    btn.style.flexShrink = '0';
+    btn.textContent = (i===0?'今日 ':'') + `${d.getMonth()+1}/${d.getDate()}` + (hasLog?' ●':'');
+    btn.onclick = ()=>{ logSelectedDate = dKey; renderLog(); };
+    tabsEl.appendChild(btn);
+  }
+  tabsEl.style.overflowX = 'auto';
+
+  // 選択日のログを表示
+  const entries = (state.trainingLog && state.trainingLog[logSelectedDate]) || [];
+  if(entries.length === 0){
+    entriesEl.innerHTML = `<div style="text-align:center;color:#888;padding:20px;font-size:12px">この日の記録はまだありません</div>`;
+    return;
+  }
+  entriesEl.innerHTML = entries.map(e=>{
+    const t = new Date(e.time);
+    const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;margin-bottom:6px">
+        <div style="font-size:20px;flex-shrink:0">${e.icon}</div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700">${e.name}</div>
+          <div style="font-size:10px;color:#888">${timeStr} 記録</div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0">+${e.xp} XP</div>
+      </div>`;
+  }).join('');
+}
+
 // ===== MODALS =====
 function openDayModal(date, key, def) {
   const ls=LOAD_STYLE[def.load];
@@ -1311,18 +1394,38 @@ function saveLessonRecords(key){
   const prevRecords = state.completedDays[key].lessonRecords || {};
 
   // XP計算：新規で「参加」になった予定に対してのみXPを付与（1予定あたり基本20XP、実施内容を選んでいれば+5ボーナス）
+  // ステータスは選んだ実施内容ごとに正しいものへ加算（ACTIVITY_STAT_MAP参照）
   let addedXP = 0;
   let statBonusAgg = {};
   newlyAttended.forEach(lessonId=>{
     const wasAttended = prevRecords[lessonId] && prevRecords[lessonId].attended;
     if (!wasAttended) {
       const base = 20;
-      const bonus = newLessonRecords[lessonId].activities.length > 0 ? 5 : 0;
+      const activities = newLessonRecords[lessonId].activities;
+      const bonus = activities.length > 0 ? 5 : 0;
       addedXP += base + bonus;
-      // 運動系なら軽くステータスも上げる
-      const activityCount = newLessonRecords[lessonId].activities.length;
-      if (activityCount > 0) {
-        statBonusAgg.stam = (statBonusAgg.stam||0) + 1;
+      // 実施内容ごとの正しいステータスに加算
+      const perActivityBonus = calcActivityStatBonus(activities);
+      Object.entries(perActivityBonus).forEach(([k,v])=>{
+        statBonusAgg[k] = (statBonusAgg[k]||0) + v;
+      });
+    }
+  });
+
+  // ログに記録（振り返り機能用）：新規で参加になった予定のみ
+  const def = getDayDef(new Date(key));
+  newlyAttended.forEach(lessonId=>{
+    const wasAttended = prevRecords[lessonId] && prevRecords[lessonId].attended;
+    if (!wasAttended) {
+      const lesson = def.lessons.find(l=>l.id===lessonId);
+      if (lesson) {
+        const activities = newLessonRecords[lessonId].activities;
+        if(!state.trainingLog) state.trainingLog = {};
+        if(!state.trainingLog[key]) state.trainingLog[key] = [];
+        state.trainingLog[key].push({
+          name: lesson.label + (activities.length ? '（'+activities.join('・')+'）' : ''),
+          icon: '📅', xp: 20 + (activities.length>0?5:0), time: new Date().toISOString()
+        });
       }
     }
   });
@@ -1334,6 +1437,7 @@ function saveLessonRecords(key){
   closeModal();
   renderSchedule();
   renderAchievements();
+  renderLog();
 }
 
 function openTrainingModal(t) {
@@ -1343,7 +1447,24 @@ function openTrainingModal(t) {
     const n={bat:'バッティング',thr:'投球・送球',run:'走力',stam:'体力',men:'メンタル'};
     return `<div class="modal-stat"><div class="ms-val">+${v}</div><div class="ms-lbl">${n[k]||k}</div></div>`;
   }).join('');
+
+  // 過去7日分の日付選択肢を生成（今日がデフォルト）
+  const today = new Date(); today.setHours(0,0,0,0);
+  let dateOptionsHTML = '';
+  for(let i=0;i<7;i++){
+    const d = new Date(today); d.setDate(d.getDate()-i);
+    const dKey = d.toISOString().slice(0,10);
+    const label = i===0 ? `今日 (${d.getMonth()+1}/${d.getDate()})` : `${d.getMonth()+1}/${d.getDate()}（${['日','月','火','水','木','金','土'][d.getDay()]}）`;
+    dateOptionsHTML += `<option value="${dKey}" ${i===0?'selected':''}>${label}</option>`;
+  }
+
   document.getElementById('modalStats').innerHTML=`
+    <div style="width:100%;margin-bottom:10px">
+      <label style="font-size:10px;color:#aaa;display:block;margin-bottom:4px">📅 いつ実施した？（入力忘れがあれば過去日を選べます）</label>
+      <select id="trainDateSelect" style="width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,215,0,0.3);color:#fff;padding:8px;border-radius:8px;font-size:13px;font-family:inherit">
+        ${dateOptionsHTML}
+      </select>
+    </div>
     <div class="modal-stat"><div class="ms-val">+${t.xp}</div><div class="ms-lbl">XP</div></div>
     <div class="modal-stat"><div class="ms-val">${t.time}</div><div class="ms-lbl">目安時間</div></div>
     ${bonuses}
@@ -1351,7 +1472,10 @@ function openTrainingModal(t) {
   `;
   document.getElementById('modalDoBtn').style.display='block';
   document.getElementById('modalDoBtn').textContent='✅ 実施した！XP獲得';
-  document.getElementById('modalDoBtn').onclick=()=>doTraining(t);
+  document.getElementById('modalDoBtn').onclick=()=>{
+    const selectedDate = document.getElementById('trainDateSelect').value;
+    doTraining(t, selectedDate);
+  };
   const ca=document.getElementById('modalCustomBtn');
   if(ca) ca.innerHTML='';
   document.getElementById('modalOverlay').classList.add('show');
@@ -1359,18 +1483,33 @@ function openTrainingModal(t) {
 
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
 
-function doTraining(t) {
+function doTraining(t, dateKey){
+  const targetKey = dateKey || new Date().toISOString().slice(0,10);
   if(t.cat==='recovery') state.recoveryCnt=(state.recoveryCnt||0)+1;
-  const todayKey=new Date().toISOString().slice(0,10);
-  if(t.highLoad) state.highLoadDone[todayKey]=true;
+  if(t.highLoad) state.highLoadDone[targetKey]=true;
 
-  // 継続系トレーニングならコンボ加算＆成長+1%
+  // 継続系トレーニングならコンボ加算＆成長+1%（過去日付選択時はコンボ計算をスキップし、当日相当の加算のみ）
   let comboMult=1;
   if(CONTINUOUS_IDS.has(t.id)){
-    comboMult=updateStreakOnTrain(todayKey);
+    const todayKey = new Date().toISOString().slice(0,10);
+    if (targetKey === todayKey) {
+      comboMult=updateStreakOnTrain(targetKey);
+    }
   }
-  addXP(Math.round(t.xp*comboMult),t.statBonus,null);
-  closeModal(); renderAchievements(); renderGrowth();
+  addXP(Math.round(t.xp*comboMult),t.statBonus,targetKey);
+  // ログに記録（振り返り用）
+  logTrainingEntry(targetKey, t);
+  closeModal(); renderAchievements(); renderGrowth(); renderLog();
+}
+
+// ===== 実施ログ記録（振り返り機能用） =====
+function logTrainingEntry(dateKey, t){
+  if(!state.trainingLog) state.trainingLog = {};
+  if(!state.trainingLog[dateKey]) state.trainingLog[dateKey] = [];
+  state.trainingLog[dateKey].push({
+    name: t.name, icon: t.icon, xp: t.xp, time: new Date().toISOString()
+  });
+  save();
 }
 
 // 継続系トレを実施した時のコンボ更新。返り値はXP倍率
