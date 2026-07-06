@@ -525,6 +525,7 @@
 <!-- TRAINING LOG (振り返り) -->
 <div class="section-title" style="margin-top:16px">📖 これまでの記録</div>
 <div style="padding:0 12px 16px">
+  <button onclick="recalcPastStats()" style="width:100%;margin-bottom:12px;background:rgba(255,215,0,0.1);border:1px solid var(--gold-dark);color:var(--gold);border-radius:10px;padding:10px;font-size:12px;font-family:inherit;cursor:pointer">🔧 過去の記録を再計算する（ステータス反映バグの修正・初回のみ）</button>
   <div style="display:flex;gap:6px;margin-bottom:10px" id="logDateTabs"></div>
   <div id="logEntries" style="max-height:300px;overflow-y:auto"></div>
 </div>
@@ -1260,6 +1261,62 @@ function renderAchievements(){
 
 // ===== 実施ログ振り返り =====
 let logSelectedDate = new Date().toISOString().slice(0,10);
+
+// ===== 過去記録のステータス再計算（バグ修正パッチ） =====
+// 以前のバージョンでは運動系レッスンの実施内容が「stam+1」のみに固定されていたため、
+// 実際に選んだ内容（素振り→バット、ダッシュ→走力等）に応じた正しいステータスへ振り替える。
+function recalcPastStats(){
+  if (state.statsRecalcDone) {
+    alert('既に再計算は実行済みです。');
+    return;
+  }
+  let totalDiff = {};
+  let affectedDays = 0;
+
+  Object.entries(state.completedDays || {}).forEach(([dateKey, dayRecord])=>{
+    const lessonRecords = dayRecord.lessonRecords || {};
+    const def = getDayDef(new Date(dateKey));
+    let dayHadPhysical = false;
+
+    Object.entries(lessonRecords).forEach(([lessonId, rec])=>{
+      if (!rec.attended) return;
+      const lesson = def.lessons.find(l=>l.id===lessonId);
+      if (!lesson || !lesson.isPhysical) return;
+      if (!rec.activities || rec.activities.length===0) return;
+
+      dayHadPhysical = true;
+      // 正しいステータス配分
+      const correct = calcActivityStatBonus(rec.activities);
+      Object.entries(correct).forEach(([k,v])=>{
+        totalDiff[k] = (totalDiff[k]||0) + v;
+      });
+      // 旧バグ分の埋め合わせ（stam+1が誤って入っていた分を打ち消す）
+      totalDiff.stam = (totalDiff.stam||0) - 1;
+    });
+
+    if (dayHadPhysical) affectedDays++;
+  });
+
+  if (Object.keys(totalDiff).length === 0) {
+    alert('再計算対象の記録が見つかりませんでした。');
+    return;
+  }
+
+  // ステータスに差分を適用（0未満にはならないようガード）
+  Object.entries(totalDiff).forEach(([k,v])=>{
+    state.stats[k] = Math.max(0, Math.min(99, (state.stats[k]||30) + v));
+  });
+
+  state.statsRecalcDone = true;
+  save();
+  renderStatus();
+
+  const summary = Object.entries(totalDiff).map(([k,v])=>{
+    const n={bat:'バッティング',thr:'投球',run:'走力',stam:'体力',men:'メンタル'};
+    return `${n[k]||k}: ${v>=0?'+':''}${v}`;
+  }).join(' / ');
+  alert(`${affectedDays}日分の記録を再計算しました！\n${summary}`);
+}
 
 function renderLog(){
   const tabsEl = document.getElementById('logDateTabs');
