@@ -734,90 +734,103 @@ const HIGH_LOAD_IDS = new Set([
   'triple-jump','medicine-ball','ladder','plyo-ball','back-lunge','slide-mat'
 ]);
 
+// 各予定を構造化オブジェクトで返すヘルパー
+// id: 一意識別子（記録キーに使用）, label: 表示名, isPhysical: 運動系か, activities: 運動系の場合の実施内容選択肢
+function mkLesson(id, label, isPhysical, activities){
+  return { id, label, isPhysical: !!isPhysical, activities: activities||[] };
+}
+
+// 運動系レッスンの「実施内容」選択肢プリセット
+const ACTIVITY_PRESETS = {
+  kawakami: ['素振り','ティーバッティング','トスバッティング','ゴロ捌き','キャッチボール','バント練習','走塁練習'],
+  kyasuku:  ['ラダー','ダッシュ','俊敏系ドリル','ジャンプ系トレーニング','バランス系トレーニング'],
+  ryunosuke:['素振り','ティーバッティング','シャドウピッチング','キャッチボール','守備練習'],
+  swimming: ['個人メドレー','クロール','背泳ぎ','平泳ぎ','バタフライ','基礎練習'],
+  seki:     ['バッティング','投球','フィジカル','守備','リカバリー'],
+  team:     ['試合出場','練習参加','ベンチ・応援'],
+};
+
 function getDayDef(date) {
   const key = date.toISOString().slice(0,10);
   const dow  = date.getDay(); // 0=日,1=月,2=火,3=水,4=木,5=金,6=土
 
   const englishTimes = ENGLISH_LESSONS[key];
-  const englishBadge = englishTimes ? [`📗 英語レッスン(Kiat先生) ${englishTimes.join(' / ')}`] : [];
-  const okadaBadge = OKADA[key] ? [`📖 岡田先生（家庭教師） ${OKADA[key]}`] : [];
-  const speakseedBadge = SPEAKSEED.has(key) ? ['🗣️ SpeakSeed（英語ディベート） 20:00-20:50'] : [];
-  const clinicBadge = CLINIC[key] ? [`🏥 皮膚科 ${CLINIC[key]}`] : [];
-  const ryunosukeBadge = RYUNOSUKE_TIMES[key] ? [`⚾ 龍之介コーチ ${RYUNOSUKE_TIMES[key]}`] : [];
+  const englishL = englishTimes ? [mkLesson('english','📗 英語レッスン(Kiat先生) '+englishTimes.join(' / '), false)] : [];
+  const okadaL = OKADA[key] ? [mkLesson('okada','📖 岡田先生（家庭教師） '+OKADA[key], false)] : [];
+  const speakseedL = SPEAKSEED.has(key) ? [mkLesson('speakseed','🗣️ SpeakSeed（英語ディベート） 20:00-20:50', false)] : [];
+  const clinicL = CLINIC[key] ? [mkLesson('clinic','🏥 皮膚科 '+CLINIC[key], false)] : [];
+  const ryunosukeL = RYUNOSUKE_TIMES[key] ? [mkLesson('ryunosuke','⚾ 龍之介コーチ '+RYUNOSUKE_TIMES[key], true, ACTIVITY_PRESETS.ryunosuke)] : [];
   const kawakamiTime = KAWAKAMI[key];
-  const litalicoBadge = LITALICO_DAYS.has(key) ? ['🤖 LITALICO 15:40-17:20（移動込15:10-17:50目安）'] : [];
-  const programmingBadge = PROGRAMMING_DAYS.has(key) ? ['💻 プログラミング教室 19:10-20:00（移動込18:55-20:15目安）'] : [];
-  const swimmingBadge = SWIMMING_DAYS.has(key) || dow===4 ? ['🏊 こうきスイミング 17:40-18:40（17:30集合、移動込16:55-19:25目安）'] : [];
+  const kawakamiL = kawakamiTime ? [mkLesson('kawakami','🏏 川上コーチ '+kawakamiTime, true, ACTIVITY_PRESETS.kawakami)]
+                    : [mkLesson('kawakami','🏏 川上コーチ 18:30-19:00', true, ACTIVITY_PRESETS.kawakami)];
+  const litalicoL = LITALICO_DAYS.has(key) ? [mkLesson('litalico','🤖 LITALICO 15:40-17:20（移動込15:10-17:50目安）', false)] : [];
+  const programmingL = PROGRAMMING_DAYS.has(key) ? [mkLesson('programming','💻 プログラミング教室 19:10-20:00（移動込18:55-20:15目安）', false)] : [];
+  const swimmingL = (SWIMMING_DAYS.has(key) || dow===4) ? [mkLesson('swimming','🏊 こうきスイミング 17:40-18:40（17:30集合、移動込16:55-19:25目安）', true, ACTIVITY_PRESETS.swimming)] : [];
 
   if (HOLIDAYS[key]) {
-    return { lessons:[`🎌 祝日：${HOLIDAYS[key]}`], load:'rest', selfOk:true,
+    return { lessons:[mkLesson('holiday','🎌 祝日：'+HOLIDAYS[key], false)], load:'rest', selfOk:true,
       recCats:['recovery','batting','throwing'], note:'祝日でお休み！ゆっくりしつつ、軽めの自主トレはOK。', icon:'🎌' };
   }
 
   if (SPECIAL_DAYS[key]) {
-    return { lessons:[...okadaBadge, SPECIAL_DAYS[key].label], load:'high', selfOk:false,
+    return { lessons:[...okadaL, mkLesson('special',SPECIAL_DAYS[key].label, true, ACTIVITY_PRESETS.seki)], load:'high', selfOk:false,
       recCats:['recovery'], note:SPECIAL_DAYS[key].note, icon:'🎢', special:true };
   }
 
   if (SEKI[key]) {
     // その日の他の習い事も保持しつつ、セキ先生を追加
-    const baseLessons=[...englishBadge, ...okadaBadge, ...clinicBadge, ...ryunosukeBadge];
-    if (programmingBadge.length) baseLessons.push(...programmingBadge);
-    if (litalicoBadge.length) baseLessons.push(...litalicoBadge);
-    if (kawakamiTime) baseLessons.push(`🏏 川上コーチ ${kawakamiTime}`);
-    if (swimmingBadge.length && dow===4) baseLessons.push(...swimmingBadge);
-    baseLessons.push(`🏫 セキ先生 ${SEKI[key]}`);
+    const baseLessons=[...englishL, ...okadaL, ...clinicL, ...ryunosukeL];
+    if (programmingL.length) baseLessons.push(...programmingL);
+    if (litalicoL.length) baseLessons.push(...litalicoL);
+    baseLessons.push(...kawakamiL);
+    if (swimmingL.length && dow===4) baseLessons.push(...swimmingL);
+    baseLessons.push(mkLesson('seki','🏫 セキ先生 '+SEKI[key], true, ACTIVITY_PRESETS.seki));
     return { lessons:baseLessons, load:'high', selfOk:false,
       recCats:['recovery'], note:'セキ先生の日！その他の習い事も含めて予定が多い日。終わったらリカバリーのみ。高負荷自主練はNG。', icon:'🏫' };
   }
 
   if (OKINAWA.has(key)) {
-    return { lessons:['✈️ 沖縄旅行'], load:'low', selfOk:true,
+    return { lessons:[mkLesson('okinawa','✈️ 沖縄旅行', false)], load:'low', selfOk:true,
       recCats:['travel'], note:'沖縄旅行中🌺道具なしでできるメニューのみ。楽しむことが最優先！', icon:'🌺', travel:true };
   }
 
   if (dow===6||dow===0) {
-    return { lessons:[...okadaBadge,'⚾ チーム練習・試合'], load:'high', selfOk:false, recCats:['recovery'],
+    return { lessons:[...okadaL, mkLesson('team','⚾ チーム練習・試合', true, ACTIVITY_PRESETS.team)], load:'high', selfOk:false, recCats:['recovery'],
       note: dow===0 ? '試合後は全力リカバリー！ストレッチポール＆ストレッチを忘れずに。' : 'チーム練習・試合！全力プレーでXP大量ゲット！', icon:'⚾' };
   }
 
   if (dow===1) { // 月：龍之介コーチ16-17（固定）、キャスク18:30-19:30
-    const lessons=[...englishBadge, ...okadaBadge, ...ryunosukeBadge];
-    lessons.push('⚡ キャスク 18:30-19:30（移動込17:30-20:30目安）');
+    const lessons=[...englishL, ...okadaL, ...ryunosukeL];
+    lessons.push(mkLesson('kyasuku','⚡ キャスク 18:30-19:30（移動込17:30-20:30目安）', true, ACTIVITY_PRESETS.kyasuku));
     return { lessons, load:'high', selfOk:false, recCats:['recovery'],
       note:'キャスク後は完全休養。午前中〜15:00頃に軽めの自主トレは可、夜は休む。', icon:'⚡' };
   }
 
   if (dow===2) { // 火：岡田先生16-17:30、川上コーチ、隔週SpeakSeed20:00-20:50
-    const lessons=[...englishBadge, ...okadaBadge];
-    if(kawakamiTime) lessons.push(`🏏 川上コーチ ${kawakamiTime}`);
-    else lessons.push('🏏 川上コーチ 18:30-19:00');
-    lessons.push(...speakseedBadge);
+    const lessons=[...englishL, ...okadaL, ...kawakamiL, ...speakseedL];
     return { lessons, load:'mid', selfOk:true, recCats:['recovery','batting'],
-      note: speakseedBadge.length ? '岡田先生→川上コーチ→SpeakSeedと夜まで予定が続く日。自主トレは軽めに。' : '家庭教師の前（午前〜昼）か、川上コーチ後に軽め自主トレ。体幹・ダッシュはNG（月との超回復考慮）。', icon:'🏏' };
+      note: speakseedL.length ? '岡田先生→川上コーチ→SpeakSeedと夜まで予定が続く日。自主トレは軽めに。' : '家庭教師の前（午前〜昼）か、川上コーチ後に軽め自主トレ。体幹・ダッシュはNG（月との超回復考慮）。', icon:'🏏' };
   }
 
   if (dow===3) { // 水：プログラミング19:10-20:00、皮膚科など不定期
-    const lessons=[...englishBadge, ...okadaBadge, ...clinicBadge, ...programmingBadge];
+    const lessons=[...englishL, ...okadaL, ...clinicL, ...programmingL];
     return { lessons, load: SEKI[key]?'high':'rest', selfOk:true, recCats:['recovery','throwing','batting'],
       note:'週の中間回復日。日中〜夕方にストレッチポール・素振り・シャドウなど軽めに。体幹・ダッシュはNG。', icon:'😴' };
   }
 
   if (dow===4) { // 木：スイミング17:40-18:40（17:30集合）、不定期で龍之介コーチ
-    const lessons=[...englishBadge, ...okadaBadge, ...ryunosukeBadge, ...swimmingBadge];
+    const lessons=[...englishL, ...okadaL, ...ryunosukeL, ...swimmingL];
     return { lessons, load:'mid', selfOk:true, recCats:['throwing','recovery'],
       note:'スイミングで全身使う。日中にシャドウ・ゴムチューブ肩まわり程度なら可。', icon:'🏊' };
   }
 
   if (dow===5) { // 金：LITALICO 15:40-17:20、川上コーチ
-    const lessons=[...englishBadge, ...okadaBadge, ...litalicoBadge];
-    if(kawakamiTime) lessons.push(`🏏 川上コーチ ${kawakamiTime}`);
-    else lessons.push('🏏 川上コーチ 18:30-19:00');
+    const lessons=[...englishL, ...okadaL, ...litalicoL, ...kawakamiL];
     return { lessons, load:'mid', selfOk:true, recCats:['recovery','batting'],
       note:'LITALICO→川上コーチと連続。空き時間は少なめ。翌土日に向けて溜め込まない、軽めのみ。', icon:'🏏' };
   }
 
-  return { lessons:[...englishBadge, ...okadaBadge], load:'rest', selfOk:true, recCats:['recovery'], note:'', icon:'📅' };
+  return { lessons:[...englishL, ...okadaL], load:'rest', selfOk:true, recCats:['recovery'], note:'', icon:'📅' };
 }
 
 const LOAD_STYLE = {
@@ -943,11 +956,17 @@ const achievements = [
   { id:'seki-all',    icon:'🏫', name:'セキ先生皆勤',    cond:'セキ先生5日全参加',    check:s=>seki5Done(s) },
 ];
 
+function isDayFullyDone(key){
+  const def = getDayDef(new Date(key));
+  if (def.lessons.length===0) return !!state.completedDays[key];
+  const rec = (state.completedDays[key] && state.completedDays[key].lessonRecords) || {};
+  return def.lessons.every(l=>rec[l.id] && rec[l.id].attended);
+}
 function okinawaCount(s) {
   return [...OKINAWA].filter(k=>s.completedDays[k]).length;
 }
 function seki5Done(s) {
-  return Object.keys(SEKI).every(k=>s.completedDays[k]);
+  return Object.keys(SEKI).every(k=>isDayFullyDone(k));
 }
 
 function getWeekDone(s, week) {
@@ -1040,7 +1059,12 @@ function renderSchedule() {
     const key=d.toISOString().slice(0,10);
     const dow=d.getDay();
     const def=getDayDef(d);
-    const isDone=!!state.completedDays[key];
+    const dayRecord = state.completedDays[key];
+    const lessonRecords = (dayRecord && dayRecord.lessonRecords) || {};
+    const totalLessons = def.lessons.length;
+    const attendedCount = def.lessons.filter(l=>lessonRecords[l.id] && lessonRecords[l.id].attended).length;
+    const isDone = totalLessons>0 && attendedCount===totalLessons;
+    const isPartial = attendedCount>0 && attendedCount<totalLessons;
     const isToday=d.getTime()===today.getTime();
     const ls=LOAD_STYLE[def.load];
 
@@ -1057,18 +1081,21 @@ function renderSchedule() {
     const m=d.getMonth()+1, dt=d.getDate();
     let icon=def.icon;
     if(isDone) icon='✅';
+    else if(isPartial) icon='🔶';
 
     // 習い事ラベル（1行目）
     const lessonLabel=def.lessons.length>0
-      ? `<div class="day-type" style="color:${ls.color};font-size:7px;line-height:1.2">${def.lessons[0].slice(0,10)}</div>`
+      ? `<div class="day-type" style="color:${ls.color};font-size:7px;line-height:1.2">${def.lessons[0].label.slice(0,10)}</div>`
       : `<div class="day-type" style="color:${ls.color};font-size:7px">${ls.label}</div>`;
+
+    const statusText = isDone ? '✓完了' : isPartial ? `${attendedCount}/${totalLessons}` : 'タップ';
 
     cell.innerHTML=`
       <div class="day-label" style="color:${dow===0?'#ff6b6b':dow===6?'#6bb5ff':'#888'}">${dayLetter}</div>
       <div class="day-num"  style="color:${dow===0?'#ff6b6b':dow===6?'#6bb5ff':isDone?'#4a8c3f':'#f8f4e8'}">${m}/${dt}</div>
       <div class="day-icon">${icon}</div>
       ${lessonLabel}
-      <div class="day-xp" style="color:${ls.color}">${isDone?'✓完了':'タップ'}</div>
+      <div class="day-xp" style="color:${ls.color}">${statusText}</div>
     `;
     cell.onclick=()=>openDayModal(d,key,def);
     grid.appendChild(cell);
@@ -1195,67 +1222,117 @@ function renderAchievements(){
 // ===== MODALS =====
 function openDayModal(date, key, def) {
   const ls=LOAD_STYLE[def.load];
-  const isDone=!!state.completedDays[key];
+  const dayRecord = state.completedDays[key] || {};
+  const lessonRecords = dayRecord.lessonRecords || {}; // { lessonId: { attended:true, activities:[...] } }
   const m=date.getMonth()+1, dt=date.getDate();
-  const isSekiDay=!!SEKI[key];
 
   document.getElementById('modalTitle').textContent=`${def.icon} ${m}/${dt}（${['日','月','火','水','木','金','土'][date.getDay()]}）`;
 
-  // 習い事バッジ
-  const lessonBadges=def.lessons.map(l=>`<div style="font-size:11px;background:rgba(255,255,255,0.08);border:1px solid ${ls.border};border-radius:8px;padding:4px 8px;margin-bottom:4px">${l}</div>`).join('');
-
   document.getElementById('modalDesc').innerHTML=`
-    ${lessonBadges}
-    <div style="font-size:11px;color:${ls.color};font-weight:700;margin:6px 0 4px">${ls.label}</div>
+    <div style="font-size:11px;color:${ls.color};font-weight:700;margin-bottom:4px">${ls.label}</div>
     <div style="font-size:11px;color:#bbb;line-height:1.6">${def.note}</div>
-    ${isSekiDay?'<div style="margin-top:10px;font-size:11px;color:#FFD700;font-weight:700">📋 セキ先生で実施したメニューを選んで記録しよう！</div>':''}
   `;
 
-  let statsHTML='';
-  let btnHTML='';
-
-  if(isSekiDay) {
-    // セキ先生の日：複数チェックで記録
-    const sekiItems=trainings.filter(t=>t.seki);
-    const already=isDone?(state.completedDays[key].trainings||[]):[];
-    statsHTML=sekiItems.map(t=>{
-      const checked=already.includes(t.id);
-      return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;background:rgba(255,255,255,0.05);border-radius:8px;cursor:pointer;margin-bottom:4px">
-        <input type="checkbox" id="seki_${t.id}" ${checked?'checked':''} style="width:16px;height:16px">
-        ${t.icon} ${t.name.replace('セキ先生：','')} <span style="color:var(--gold);font-size:10px">+${t.xp}XP</span>
-      </label>`;
-    }).join('');
-    btnHTML=`<button class="btn-do" onclick="recordSekiDay('${key}')">✅ セキ先生の記録を保存！</button>`;
-  } else if(def.load==='high'&&!def.travel) {
-    statsHTML=`<div class="modal-stat"><div class="ms-val" style="color:${ls.color}">${ls.label}</div><div class="ms-lbl">今日の強度</div></div>`;
-    btnHTML=`<button class="btn-do" onclick="recordDay('${key}',null)">${isDone?'✅ 記録済み！':'✅ 参加した！記録する'}</button>`;
-  } else if(def.travel) {
-    const travelTrains=trainings.filter(t=>t.cat==='travel');
-    const already=isDone?(state.completedDays[key].trainings||[]):[];
-    statsHTML=travelTrains.map(t=>{
-      const checked=already.includes(t.id);
-      return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;background:rgba(255,255,255,0.05);border-radius:8px;cursor:pointer;margin-bottom:4px">
-        <input type="checkbox" id="trv_${t.id}" ${checked?'checked':''} style="width:16px;height:16px">
-        ${t.icon} ${t.name} <span style="color:var(--gold);font-size:10px">+${t.xp}XP</span>
-      </label>`;
-    }).join('');
-    btnHTML=`<button class="btn-do" onclick="recordTravelDay('${key}')">✅ 旅先トレを記録！</button>`;
+  // 予定ごとのカードを生成
+  let lessonCardsHTML = '';
+  if (def.lessons.length === 0) {
+    lessonCardsHTML = `<div style="text-align:center;color:#888;padding:16px;font-size:12px;">この日は予定なし。自主トレメニューから記録しよう！</div>`;
   } else {
-    statsHTML=`<div class="modal-stat"><div class="ms-val" style="color:${ls.color}">${ls.label}</div><div class="ms-lbl">今日の強度</div></div>`;
-    btnHTML=`<button class="btn-do" onclick="recordDay('${key}',null)">${isDone?'✅ 記録済み！':'✅ 今日を記録する'}</button>`;
+    lessonCardsHTML = def.lessons.map(lesson=>{
+      const rec = lessonRecords[lesson.id] || { attended:false, activities:[] };
+      let activitiesHTML = '';
+      if (lesson.isPhysical && lesson.activities.length) {
+        activitiesHTML = `
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);display:${rec.attended?'block':'none'}" id="acts_${lesson.id}">
+            <div style="font-size:10px;color:#aaa;margin-bottom:6px">実施した内容を選んでね（複数選択OK）：</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${lesson.activities.map(a=>{
+                const checked = rec.activities.includes(a);
+                return `<label style="display:flex;align-items:center;gap:4px;font-size:10px;background:${checked?'rgba(74,140,63,0.3)':'rgba(255,255,255,0.05)'};border:1px solid ${checked?'rgba(74,140,63,0.6)':'rgba(255,255,255,0.15)'};border-radius:14px;padding:4px 10px;cursor:pointer">
+                  <input type="checkbox" class="act-check" data-lesson="${lesson.id}" value="${a}" ${checked?'checked':''} style="width:12px;height:12px">
+                  ${a}
+                </label>`;
+              }).join('')}
+            </div>
+          </div>`;
+      }
+      return `
+        <div style="background:rgba(255,255,255,0.05);border:1px solid ${ls.border};border-radius:10px;padding:10px;margin-bottom:8px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+            <input type="checkbox" class="lesson-check" data-lesson="${lesson.id}" ${rec.attended?'checked':''} style="width:16px;height:16px;flex-shrink:0" onchange="toggleLessonActivities('${lesson.id}')">
+            <span>${lesson.label}</span>
+          </label>
+          ${activitiesHTML}
+        </div>`;
+    }).join('');
   }
 
-  document.getElementById('modalStats').innerHTML=statsHTML;
-  document.getElementById('modalDoBtn').style.display='none'; // 個別ボタン使用
-  // カスタムボタンエリアに挿入
+  document.getElementById('modalStats').innerHTML = lessonCardsHTML;
+  document.getElementById('modalDoBtn').style.display='none';
+
   let customArea=document.getElementById('modalCustomBtn');
   if(!customArea){
     customArea=document.createElement('div');
     customArea.id='modalCustomBtn';
     document.getElementById('modalDoBtn').after(customArea);
   }
-  customArea.innerHTML=btnHTML+(isDone&&!isSekiDay&&!def.travel?'<div style="text-align:center;color:#4a8c3f;font-size:12px;margin-top:8px">✅ 完了済み！</div>':'');
+  const hasLessons = def.lessons.length > 0;
+  customArea.innerHTML = hasLessons
+    ? `<button class="btn-do" onclick="saveLessonRecords('${key}')">✅ この日の記録を保存！</button>`
+    : '';
   document.getElementById('modalOverlay').classList.add('show');
+}
+
+// チェックを入れた瞬間に実施内容エリアを表示/非表示
+function toggleLessonActivities(lessonId){
+  const area = document.getElementById('acts_'+lessonId);
+  if(!area) return;
+  const checkbox = document.querySelector(`.lesson-check[data-lesson="${lessonId}"]`);
+  area.style.display = checkbox.checked ? 'block' : 'none';
+}
+
+// その日の全予定チェック状態を集計して保存
+function saveLessonRecords(key){
+  const lessonChecks = document.querySelectorAll('.lesson-check');
+  const newLessonRecords = {};
+  let newlyAttended = [];
+
+  lessonChecks.forEach(cb=>{
+    const lessonId = cb.dataset.lesson;
+    const attended = cb.checked;
+    const activityChecks = document.querySelectorAll(`.act-check[data-lesson="${lessonId}"]:checked`);
+    const activities = Array.from(activityChecks).map(a=>a.value);
+    newLessonRecords[lessonId] = { attended, activities };
+    if (attended) newlyAttended.push(lessonId);
+  });
+
+  if (!state.completedDays[key]) state.completedDays[key] = { trainings:[], xpEarned:0, lessonRecords:{} };
+  const prevRecords = state.completedDays[key].lessonRecords || {};
+
+  // XP計算：新規で「参加」になった予定に対してのみXPを付与（1予定あたり基本20XP、実施内容を選んでいれば+5ボーナス）
+  let addedXP = 0;
+  let statBonusAgg = {};
+  newlyAttended.forEach(lessonId=>{
+    const wasAttended = prevRecords[lessonId] && prevRecords[lessonId].attended;
+    if (!wasAttended) {
+      const base = 20;
+      const bonus = newLessonRecords[lessonId].activities.length > 0 ? 5 : 0;
+      addedXP += base + bonus;
+      // 運動系なら軽くステータスも上げる
+      const activityCount = newLessonRecords[lessonId].activities.length;
+      if (activityCount > 0) {
+        statBonusAgg.stam = (statBonusAgg.stam||0) + 1;
+      }
+    }
+  });
+
+  state.completedDays[key].lessonRecords = newLessonRecords;
+  if (addedXP > 0) addXP(addedXP, statBonusAgg, key);
+  else save();
+
+  closeModal();
+  renderSchedule();
+  renderAchievements();
 }
 
 function openTrainingModal(t) {
@@ -1280,44 +1357,6 @@ function openTrainingModal(t) {
 }
 
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
-
-function recordDay(key, t) {
-  if(!state.completedDays[key]) state.completedDays[key]={ trainings:[], xpEarned:0 };
-  const xp=t?t.xp:35;
-  const bonus=t?t.statBonus:{bat:2,thr:2,run:2,stam:2,men:2};
-  if(t&&t.highLoad) state.highLoadDone[key]=true;
-  addXP(xp,bonus,key);
-  closeModal(); renderSchedule(); renderAchievements();
-}
-
-function recordSekiDay(key) {
-  const sekiItems=trainings.filter(t=>t.seki);
-  const selected=sekiItems.filter(t=>document.getElementById('seki_'+t.id)?.checked);
-  if(!selected.length){ alert('メニューを1つ以上選んでね！'); return; }
-  if(!state.completedDays[key]) state.completedDays[key]={ trainings:[], xpEarned:0 };
-  const already=state.completedDays[key].trainings||[];
-  const newOnes=selected.filter(t=>!already.includes(t.id));
-  newOnes.forEach(t=>{
-    state.completedDays[key].trainings.push(t.id);
-    addXP(t.xp,t.statBonus,key);
-  });
-  state.highLoadDone[key]=true;
-  closeModal(); renderSchedule(); renderAchievements();
-}
-
-function recordTravelDay(key) {
-  const travelItems=trainings.filter(t=>t.cat==='travel');
-  const selected=travelItems.filter(t=>document.getElementById('trv_'+t.id)?.checked);
-  if(!selected.length){ alert('メニューを1つ以上選んでね！'); return; }
-  if(!state.completedDays[key]) state.completedDays[key]={ trainings:[], xpEarned:0 };
-  const already=state.completedDays[key].trainings||[];
-  const newOnes=selected.filter(t=>!already.includes(t.id));
-  newOnes.forEach(t=>{
-    state.completedDays[key].trainings.push(t.id);
-    addXP(t.xp,t.statBonus,key);
-  });
-  closeModal(); renderSchedule(); renderAchievements();
-}
 
 function doTraining(t) {
   if(t.cat==='recovery') state.recoveryCnt=(state.recoveryCnt||0)+1;
