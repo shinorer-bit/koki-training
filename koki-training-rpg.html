@@ -428,6 +428,7 @@
 
 <!-- HEADER -->
 <div class="game-header">
+  <button id="refreshBtn" onclick="forceRefresh()" style="position:absolute;top:10px;right:10px;background:rgba(255,215,0,0.15);border:1px solid var(--gold-dark);color:var(--gold);border-radius:20px;padding:6px 14px;font-size:11px;font-family:inherit;cursor:pointer;z-index:10">🔄 最新版に更新</button>
   <div class="game-title">⚾ KITA-SUNA LITTLE LEAGUE</div>
   <div class="player-name">光揮 (こうき)</div>
   <div class="season-badge">🔥 夏の特訓 2026 — Week <span id="currentWeekLabel">1</span>/8</div>
@@ -1467,6 +1468,16 @@ function closeLevelUp(){ document.getElementById('levelUpBanner').classList.remo
 function updateWeekDaysLeft(){
   const dow=new Date().getDay();
   document.getElementById('weekDaysLeft').textContent=dow===0?0:7-dow;
+}
+
+// ===== 強制リフレッシュ（キャッシュ回避） =====
+function forceRefresh(){
+  const btn = document.getElementById('refreshBtn');
+  if(btn) btn.textContent = '🔄 更新中...';
+  // クエリパラメータにタイムスタンプを付けてキャッシュを無視した再読み込みを強制
+  const url = new URL(window.location.href.split('?')[0]);
+  url.searchParams.set('_t', Date.now());
+  window.location.href = url.toString();
 }
 
 // ===== RULES POPUP =====
