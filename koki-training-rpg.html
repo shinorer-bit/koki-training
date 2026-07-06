@@ -654,42 +654,78 @@ const CONTINUOUS_IDS = new Set([
 ]);
 
 // ===== SPECIAL DAY DEFINITIONS =====
+// 7月分はカレンダー実データに基づき、日付ごとに明示登録（正確性優先）
 const SEKI = {
   '2026-07-08':'9:15-14:30','2026-07-10':'9:15-11:30',
   '2026-07-22':'9:15-14:15','2026-07-23':'9:30-13:00','2026-07-24':'9:15-11:30',
 };
 const OKINAWA = new Set(['2026-07-13','2026-07-14','2026-07-15','2026-07-16','2026-07-17']);
 const SPECIAL_DAYS = {
-  '2026-07-31':{ label:'🎢 読売ランド 8:45-17:30', note:'ロングの遊びの日！身体を思いっきり楽しんでリフレッシュ。夜はストレッチポール＆ストレッチだけ。' }
+  '2026-07-31':{ label:'🏫 セキ先生 遠足 8:45-17:00', note:'セキ先生の遠足！身体を思いっきり動かしてリフレッシュ。夜はストレッチポール＆ストレッチだけ。' }
 };
 
-// 龍之介コーチ（不定期・月曜16:00-17:00に入ることが多い）
-const RYUNOSUKE = new Set(['2026-07-06','2026-07-13']);
+// 龍之介コーチ：毎週月曜16:00-17:00固定（祝日・沖縄旅行中は除く）
+const RYUNOSUKE_FIXED = true;
 
 // 岡田先生（家庭教師・不定期）
 const OKADA = {
+  '2026-07-07': '16:00-17:30',
   '2026-07-09': '10:30-12:00',
+  '2026-07-21': '16:00-17:30',
   '2026-07-27': '10:00-11:30',
+  '2026-07-28': '16:00-17:30',
   '2026-07-29': '10:00-11:30',
   '2026-07-30': '13:00-14:30',
 };
 
 // 英語レッスン with Kiat先生（日によって時間帯が異なる。カレンダー実データに基づく）
 const ENGLISH_LESSONS = {
-  '2026-07-06': ['9:00-9:25','9:30-9:55'],
-  '2026-07-08': ['16:00-16:25','16:30-16:55'],
-  '2026-07-09': ['9:00-9:25','9:30-9:55'],
-  // 7/10はレッスンなし
+  '2026-07-06': ['9:00-10:00'],
+  '2026-07-08': ['16:00-17:00'],
+  '2026-07-09': ['9:00-10:00'],
+  '2026-07-22': ['16:00-17:00'],
+  '2026-07-30': ['9:00-10:00'],
+  // 7/10・7/24はレッスンなし
 };
 
-// 水曜朝練 w川上コーチ（第5水曜日は休み）6:30-7:30
+// SpeakSeed（英語ディベートレッスン・新規追加、隔週火曜20:00-20:50想定）
+const SPEAKSEED = new Set(['2026-07-07','2026-07-21','2026-07-28']);
+
+// 皮膚科（不定期）
+const CLINIC = { '2026-07-08': '17:30-18:00' };
+
+// 祝日（習い事なしの特別休み）
+const HOLIDAYS = { '2026-07-20': '海の日' };
+
+// 川上コーチの個別レッスン時間（曜日パターンだけでなく実データに基づき上書き）
+const KAWAKAMI = {
+  '2026-07-07': '18:30-19:00',
+  '2026-07-10': '18:30-19:00',
+  '2026-07-21': '18:30-19:00',
+  '2026-07-24': '18:00-18:30',
+  '2026-07-28': '18:30-19:00',
+  '2026-07-31': '18:00-18:30',
+};
+
+// LITALICO（実データに基づき時間統一）
+const LITALICO_DAYS = new Set(['2026-07-10','2026-07-24']);
+
+// プログラミング教室（実データ：19:10-20:00に統一）
+const PROGRAMMING_DAYS = new Set(['2026-07-08','2026-07-22','2026-07-29']);
+
+// スイミング（実データに基づく日付、木曜以外にも入ることがある）
+const SWIMMING_DAYS = new Set(['2026-07-09','2026-07-23']);
+
+// 龍之介コーチ不定期追加分（通常の月曜以外、または月曜以外の日）
+const RYUNOSUKE_EXTRA = new Set(['2026-07-09']); // 7/9(木) 13:00-14:00
+const RYUNOSUKE_TIMES = {
+  '2026-07-06':'16:00-17:00','2026-07-09':'13:00-14:00','2026-07-13':'16:00-17:00',
+  '2026-07-27':'16:00-17:00',
+};
+
+// 水曜朝練 w川上コーチ（第5水曜日は休み）6:30-7:30 ※7月は実データ上「朝練」表記なし、無効化
 function isMorningPracticeWed(date){
-  const dow=date.getDay();
-  if(dow!==3) return false;
-  // 第5水曜日か判定
-  const d=date.getDate();
-  const isFifth = d>28; // 29日以降なら5週目扱い（簡易判定）
-  return !isFifth;
+  return false; // カレンダー実データに朝練の記載がないため一旦オフ
 }
 
 // 高負荷トレID（超回復=中1日必要）
@@ -701,65 +737,86 @@ const HIGH_LOAD_IDS = new Set([
 function getDayDef(date) {
   const key = date.toISOString().slice(0,10);
   const dow  = date.getDay(); // 0=日,1=月,2=火,3=水,4=木,5=金,6=土
+
   const englishTimes = ENGLISH_LESSONS[key];
   const englishBadge = englishTimes ? [`📗 英語レッスン(Kiat先生) ${englishTimes.join(' / ')}`] : [];
   const okadaBadge = OKADA[key] ? [`📖 岡田先生（家庭教師） ${OKADA[key]}`] : [];
+  const speakseedBadge = SPEAKSEED.has(key) ? ['🗣️ SpeakSeed（英語ディベート） 20:00-20:50'] : [];
+  const clinicBadge = CLINIC[key] ? [`🏥 皮膚科 ${CLINIC[key]}`] : [];
+  const ryunosukeBadge = RYUNOSUKE_TIMES[key] ? [`⚾ 龍之介コーチ ${RYUNOSUKE_TIMES[key]}`] : [];
+  const kawakamiTime = KAWAKAMI[key];
+  const litalicoBadge = LITALICO_DAYS.has(key) ? ['🤖 LITALICO 15:40-17:20（移動込15:10-17:50目安）'] : [];
+  const programmingBadge = PROGRAMMING_DAYS.has(key) ? ['💻 プログラミング教室 19:10-20:00（移動込18:55-20:15目安）'] : [];
+  const swimmingBadge = SWIMMING_DAYS.has(key) || dow===4 ? ['🏊 こうきスイミング 17:40-18:40（17:30集合、移動込16:55-19:25目安）'] : [];
+
+  if (HOLIDAYS[key]) {
+    return { lessons:[`🎌 祝日：${HOLIDAYS[key]}`], load:'rest', selfOk:true,
+      recCats:['recovery','batting','throwing'], note:'祝日でお休み！ゆっくりしつつ、軽めの自主トレはOK。', icon:'🎌' };
+  }
 
   if (SPECIAL_DAYS[key]) {
     return { lessons:[...okadaBadge, SPECIAL_DAYS[key].label], load:'high', selfOk:false,
       recCats:['recovery'], note:SPECIAL_DAYS[key].note, icon:'🎢', special:true };
   }
+
   if (SEKI[key]) {
-    // その曜日本来の習い事も保持しつつ、セキ先生を追加する
-    const baseLessons=[...englishBadge, ...okadaBadge];
-    if (dow===3) {
-      if(isMorningPracticeWed(date)) baseLessons.push('🏏 朝練 w川上コーチ 6:30-7:30');
-      baseLessons.push('💻 プログラミング教室 19:05-20:05（移動込18:55-20:15目安）');
-    }
-    if (dow===5) { baseLessons.push('🤖 LITALICO 15:50-17:20（移動込15:20-17:50目安）'); baseLessons.push('🏏 川上コーチ 18:30-19:00'); }
-    if (dow===2) { baseLessons.push('📖 岡田先生（家庭教師） 16:00-17:30'); baseLessons.push('🏏 川上コーチ 18:30-19:00'); }
-    if (dow===4) baseLessons.push('🏊 こうきスイミング 17:40-18:40（17:30集合、移動込16:55-19:25目安）');
+    // その日の他の習い事も保持しつつ、セキ先生を追加
+    const baseLessons=[...englishBadge, ...okadaBadge, ...clinicBadge, ...ryunosukeBadge];
+    if (programmingBadge.length) baseLessons.push(...programmingBadge);
+    if (litalicoBadge.length) baseLessons.push(...litalicoBadge);
+    if (kawakamiTime) baseLessons.push(`🏏 川上コーチ ${kawakamiTime}`);
+    if (swimmingBadge.length && dow===4) baseLessons.push(...swimmingBadge);
     baseLessons.push(`🏫 セキ先生 ${SEKI[key]}`);
     return { lessons:baseLessons, load:'high', selfOk:false,
       recCats:['recovery'], note:'セキ先生の日！その他の習い事も含めて予定が多い日。終わったらリカバリーのみ。高負荷自主練はNG。', icon:'🏫' };
   }
+
   if (OKINAWA.has(key)) {
     return { lessons:['✈️ 沖縄旅行'], load:'low', selfOk:true,
       recCats:['travel'], note:'沖縄旅行中🌺道具なしでできるメニューのみ。楽しむことが最優先！', icon:'🌺', travel:true };
   }
+
   if (dow===6||dow===0) {
     return { lessons:[...okadaBadge,'⚾ チーム練習・試合'], load:'high', selfOk:false, recCats:['recovery'],
       note: dow===0 ? '試合後は全力リカバリー！ストレッチポール＆ストレッチを忘れずに。' : 'チーム練習・試合！全力プレーでXP大量ゲット！', icon:'⚾' };
   }
-  if (dow===1) { // 月：（龍之介コーチ16-17不定期）キャスク18:30-19:30
-    const lessons=[...englishBadge, ...okadaBadge];
-    if(RYUNOSUKE.has(key)) lessons.push('⚾ 龍之介コーチ 16:00-17:00');
+
+  if (dow===1) { // 月：龍之介コーチ16-17（固定）、キャスク18:30-19:30
+    const lessons=[...englishBadge, ...okadaBadge, ...ryunosukeBadge];
     lessons.push('⚡ キャスク 18:30-19:30（移動込17:30-20:30目安）');
     return { lessons, load:'high', selfOk:false, recCats:['recovery'],
       note:'キャスク後は完全休養。午前中〜15:00頃に軽めの自主トレは可、夜は休む。', icon:'⚡' };
   }
-  if (dow===2) { // 火：岡田先生（家庭教師）16-17:30、川上コーチ18:30-19:00
-    return { lessons:[...englishBadge,'📖 岡田先生（家庭教師） 16:00-17:30','🏏 川上コーチ 18:30-19:00'],
-      load:'mid', selfOk:true, recCats:['recovery','batting'],
-      note:'家庭教師の前（午前〜昼）か、川上コーチ後（19:00以降）に軽め自主トレ。体幹・ダッシュはNG（月との超回復考慮）。', icon:'🏏' };
-  }
-  if (dow===3) { // 水：朝練w川上コーチ6:30-7:30（第5水曜休み）、セキ先生あり得る、プログラミング19:05-20:05
+
+  if (dow===2) { // 火：岡田先生16-17:30、川上コーチ、隔週SpeakSeed20:00-20:50
     const lessons=[...englishBadge, ...okadaBadge];
-    if(isMorningPracticeWed(date)) lessons.push('🏏 朝練 w川上コーチ 6:30-7:30');
-    lessons.push('💻 プログラミング教室 19:05-20:05（移動込18:55-20:15目安）');
-    return { lessons, load: SEKI[key]?'high':'rest', selfOk:true, recCats:['recovery','throwing','batting'],
-      note:'週の中間回復日。朝練後〜夕方にストレッチポール・素振り・シャドウなど軽めに。体幹・ダッシュはNG。', icon:'😴' };
+    if(kawakamiTime) lessons.push(`🏏 川上コーチ ${kawakamiTime}`);
+    else lessons.push('🏏 川上コーチ 18:30-19:00');
+    lessons.push(...speakseedBadge);
+    return { lessons, load:'mid', selfOk:true, recCats:['recovery','batting'],
+      note: speakseedBadge.length ? '岡田先生→川上コーチ→SpeakSeedと夜まで予定が続く日。自主トレは軽めに。' : '家庭教師の前（午前〜昼）か、川上コーチ後に軽め自主トレ。体幹・ダッシュはNG（月との超回復考慮）。', icon:'🏏' };
   }
-  if (dow===4) { // 木：スイミング17:40-18:40（17:30集合）
-    return { lessons:[...englishBadge, ...okadaBadge,'🏊 こうきスイミング 17:40-18:40（17:30集合、移動込16:55-19:25目安）'],
-      load:'mid', selfOk:true, recCats:['throwing','recovery'],
+
+  if (dow===3) { // 水：プログラミング19:10-20:00、皮膚科など不定期
+    const lessons=[...englishBadge, ...okadaBadge, ...clinicBadge, ...programmingBadge];
+    return { lessons, load: SEKI[key]?'high':'rest', selfOk:true, recCats:['recovery','throwing','batting'],
+      note:'週の中間回復日。日中〜夕方にストレッチポール・素振り・シャドウなど軽めに。体幹・ダッシュはNG。', icon:'😴' };
+  }
+
+  if (dow===4) { // 木：スイミング17:40-18:40（17:30集合）、不定期で龍之介コーチ
+    const lessons=[...englishBadge, ...okadaBadge, ...ryunosukeBadge, ...swimmingBadge];
+    return { lessons, load:'mid', selfOk:true, recCats:['throwing','recovery'],
       note:'スイミングで全身使う。日中にシャドウ・ゴムチューブ肩まわり程度なら可。', icon:'🏊' };
   }
-  if (dow===5) { // 金：LITALICO 15:50-17:20、川上コーチ18:30-19:00（週によって時間前後）
-    return { lessons:[...englishBadge, ...okadaBadge,'🤖 LITALICO 15:50-17:20（移動込15:20-17:50目安）','🏏 川上コーチ 18:30-19:00'],
-      load:'mid', selfOk:true, recCats:['recovery','batting'],
+
+  if (dow===5) { // 金：LITALICO 15:40-17:20、川上コーチ
+    const lessons=[...englishBadge, ...okadaBadge, ...litalicoBadge];
+    if(kawakamiTime) lessons.push(`🏏 川上コーチ ${kawakamiTime}`);
+    else lessons.push('🏏 川上コーチ 18:30-19:00');
+    return { lessons, load:'mid', selfOk:true, recCats:['recovery','batting'],
       note:'LITALICO→川上コーチと連続。空き時間は少なめ。翌土日に向けて溜め込まない、軽めのみ。', icon:'🏏' };
   }
+
   return { lessons:[...englishBadge, ...okadaBadge], load:'rest', selfOk:true, recCats:['recovery'], note:'', icon:'📅' };
 }
 
