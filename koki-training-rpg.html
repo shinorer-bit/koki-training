@@ -508,6 +508,7 @@
         <div style="font-size:8px;color:#aaa">継続日数</div>
       </div>
     </div>
+    <button id="restBtn" onclick="declareRestToday()" style="width:100%;margin-top:10px;background:rgba(26,107,181,0.15);border:1px solid rgba(26,107,181,0.4);color:#8ab4ff;border-radius:8px;padding:8px;font-size:11px;font-family:inherit;cursor:pointer">😴 今日は休む（ペナルティなし）</button>
   </div>
 </div>
 <div class="section-title">📅 SCHEDULE</div>
@@ -598,6 +599,7 @@ let state = {
   streak: 0,               // 継続日数（コンボ）
   lastContinuousDay: null, // 最後に継続系トレを実施した日 key
   rulesSeen: false,        // ルール説明を見たか
+  restDeclared: {},        // key(日付) -> true : その場で「今日は休む」を宣言した日
 };
 
 // ===== クラウド同期（Google スプレッドシート経由） =====
@@ -674,6 +676,11 @@ const SPECIAL_DAYS = {
   '2026-07-31':{ label:'🏫 セキ先生 遠足 8:45-17:00', note:'セキ先生の遠足！身体を思いっきり動かしてリフレッシュ。夜はストレッチポール＆ストレッチだけ。' }
 };
 
+// 事前登録した休養日（父が「〇月〇日を休養日にして」と伝えれば、ここに日付を追加する）
+const REST_DAYS = new Set([
+  // 例：'2026-07-15',
+]);
+
 // 龍之介コーチ：毎週月曜16:00-17:00固定（祝日・沖縄旅行中は除く）
 const RYUNOSUKE_FIXED = true;
 
@@ -741,7 +748,7 @@ function isMorningPracticeWed(date){
 // 高負荷トレID（超回復=中1日必要）
 const HIGH_LOAD_IDS = new Set([
   'core-training','dash-sprint','box-jump','balance-dome',
-  'triple-jump','medicine-ball','ladder','plyo-ball','back-lunge','slide-mat'
+  'triple-jump','medicine-ball','plyo-ball','back-lunge','slide-mat'
 ]);
 
 // 各予定を構造化オブジェクトで返すヘルパー
@@ -752,30 +759,47 @@ function mkLesson(id, label, isPhysical, activities){
 
 // 運動系レッスンの「実施内容」選択肢プリセット
 const ACTIVITY_PRESETS = {
-  kawakami: ['素振り','ティーバッティング','トスバッティング','ゴロ捌き','キャッチボール','バント練習','走塁練習'],
-  kyasuku:  ['ラダー','ダッシュ','俊敏系ドリル','ジャンプ系トレーニング','バランス系トレーニング'],
-  ryunosuke:['素振り','ティーバッティング','シャドウピッチング','キャッチボール','守備練習'],
+  kawakami: ['素振り','トスバッティング','シャトル打ち','守備（ゴロ捌き）','守備（送球）','ピッチング'],
+  kyasuku:  ['バランス＆リズム（コーディネーション）','切り返し＆方向転換（アジリティ）','ダッシュ＆トップスピード（スピード）','スタートダッシュ（クイックネス）','測定会'],
+  ryunosuke:['素振り','トスバッティング','シャトル打ち'],
   swimming: ['個人メドレー','クロール','背泳ぎ','平泳ぎ','バタフライ','基礎練習'],
-  seki:     ['バッティング','投球','フィジカル','守備','リカバリー'],
-  team:     ['試合出場','練習参加','ベンチ・応援'],
+  seki:     ['バッティング','投球','フィジカル','守備','リカバリー','キャッチボール','ペッパー'],
+  team:     ['試合出場','バッティング','守備','ピッチング','フィジカル','ダッシュ','ランニング','ベンチ・応援'],
 };
 
 // 各「実施内容」がどのステータスに効くかのマッピング（1個につき+1〜2ポイント目安）
 const ACTIVITY_STAT_MAP = {
   // バッティング系
-  '素振り': {bat:2}, 'ティーバッティング': {bat:2}, 'トスバッティング': {bat:2}, 'バント練習': {bat:1,men:1},
+  '素振り': {bat:2}, 'トスバッティング': {bat:2}, 'シャトル打ち': {bat:2},
   // 投球・守備系
-  'ゴロ捌き': {thr:2}, 'キャッチボール': {thr:2}, 'シャドウピッチング': {thr:2}, '守備練習': {thr:2},
-  // 走力・俊敏系
-  'ラダー': {run:2}, 'ダッシュ': {run:2}, '俊敏系ドリル': {run:2}, '走塁練習': {run:2},
-  // 体力・フィジカル系
-  'ジャンプ系トレーニング': {stam:2,run:1}, 'バランス系トレーニング': {stam:1,run:1},
+  '守備（ゴロ捌き）': {thr:2}, '守備（送球）': {thr:2}, 'ピッチング': {thr:2},
+  // キャスク（CASQ 4要素＋測定会）
+  'バランス＆リズム（コーディネーション）': {run:1,stam:1},
+  '切り返し＆方向転換（アジリティ）': {run:2},
+  'ダッシュ＆トップスピード（スピード）': {run:2},
+  'スタートダッシュ（クイックネス）': {run:2,men:1},
+  '測定会': {run:1,men:2},
+  // スイミング
   '個人メドレー': {stam:2}, 'クロール': {stam:1,run:1}, '背泳ぎ': {stam:1,run:1},
   '平泳ぎ': {stam:2}, 'バタフライ': {stam:2,run:1}, '基礎練習': {stam:1},
-  // セキ先生（カテゴリ名そのまま）
+  // セキ先生／チーム練習 共通カテゴリ名
   'バッティング': {bat:2}, '投球': {thr:2}, 'フィジカル': {run:1,stam:1}, '守備': {thr:1,run:1}, 'リカバリー': {stam:2,men:1},
+  'キャッチボール': {thr:2}, 'ペッパー': {bat:1,thr:1,men:1},
   // チーム練習・試合
-  '試合出場': {bat:1,thr:1,run:1,stam:1,men:2}, '練習参加': {bat:1,thr:1,run:1,stam:1,men:1}, 'ベンチ・応援': {men:2},
+  '試合出場': {bat:1,thr:1,run:1,stam:1,men:2}, 'ダッシュ': {run:2}, 'ランニング': {stam:2}, 'ベンチ・応援': {men:2},
+
+  // ===== 廃止済み項目（過去に記録済みのデータとの整合性維持のため残置。選択肢には表示されない） =====
+  'ティーバッティング': {bat:2},
+  'バント練習': {bat:1,men:1},
+  'ゴロ捌き': {thr:2},
+  'シャドウピッチング': {thr:2},
+  '守備練習': {thr:2},
+  '走塁練習': {run:2},
+  'ラダー': {run:2},
+  '俊敏系ドリル': {run:2},
+  'ジャンプ系トレーニング': {stam:2,run:1},
+  'バランス系トレーニング': {stam:1,run:1},
+  '練習参加': {bat:1,thr:1,run:1,stam:1,men:1},
 };
 
 // 選ばれた実施内容リストから合算ステータスボーナスを計算
@@ -793,6 +817,12 @@ function calcActivityStatBonus(activities){
 function getDayDef(date) {
   const key = date.toISOString().slice(0,10);
   const dow  = date.getDay(); // 0=日,1=月,2=火,3=水,4=木,5=金,6=土
+
+  // 事前登録の休養日は最優先（習い事があっても表示上は休養日として扱う）
+  if (REST_DAYS.has(key)) {
+    return { lessons:[mkLesson('rest-declared','🛌 休養日（予定済み）', false)], load:'rest', selfOk:true,
+      recCats:['recovery'], note:'今日はあらかじめ決めた休養日！身体を休めて、リカバリー系だけ軽く行おう。', icon:'🛌', restDay:true };
+  }
 
   const englishTimes = ENGLISH_LESSONS[key];
   const englishL = englishTimes ? [mkLesson('english','📗 英語レッスン(Kiat先生) '+englishTimes.join(' / '), false)] : [];
@@ -913,8 +943,8 @@ const trainings = [
     desc:'腕立て伏せ×20回→懸垂×最大回数×3セット→プランク60秒×3。上半身・体幹の土台を作る必須メニュー。',
     xp:17, time:'25分', cat:'physical', tags:['stamina'], statBonus:{stam:3,bat:1}, highLoad:true, travelOk:true },
   { id:'ladder', icon:'🪜', name:'ラダートレーニング',
-    desc:'2イン1アウト・シャッフル・クロスステップなど5種目×3セット。足の回転数と方向転換の鋭さを上げる俊敏性トレ。',
-    xp:15, time:'20分', cat:'physical', tags:['run'], statBonus:{run:4}, highLoad:true, travelOk:false },
+    desc:'2イン1アウト・シャッフル・クロスステップなど5種目×3セット。足の回転数と方向転換の鋭さを上げる俊敏性トレ。アップ要素が強く毎日でもOK。',
+    xp:15, time:'20分', cat:'physical', tags:['run'], statBonus:{run:4}, highLoad:false, travelOk:false },
   { id:'back-lunge', icon:'🦵', name:'バックラウンジ',
     desc:'後ろ足を引いて深くしゃがむランジ×左右15回×3セット。股関節の可動域とお尻・太もも前面を強化。打撃・走塁の土台に。',
     xp:14, time:'15分', cat:'physical', tags:['run','stamina'], statBonus:{run:2,stam:2}, highLoad:true, travelOk:true },
@@ -1197,13 +1227,18 @@ function renderTrainingMenu() {
 
   // 今日のDayDef
   const todayDef=getDayDef(today);
+  const tomorrow=new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+  const tomorrowDef=getDayDef(tomorrow);
+  const isTomorrowLessonHighLoad = tomorrowDef.load==='high';
 
   visible.forEach(t=>{
-    const isHighLoadBlocked = t.highLoad && (
-      todayDef.load==='high' || adjacentHighLoad(todayKey)
-    );
+    // 高負荷トレは「警告」のみ（選択はいつでも可能）。理由を分けて表示する。
+    const isLessonHighLoad = todayDef.load==='high';
+    const isRecentHighLoad = adjacentHighLoad(todayKey);
+    const showWarning = t.highLoad && (isLessonHighLoad || isRecentHighLoad || isTomorrowLessonHighLoad);
+
     const card=document.createElement('div');
-    card.className='training-card'+(isHighLoadBlocked?' locked':'');
+    card.className='training-card'; // ロック用クラスは付けない＝常に選択可能
 
     const tagHTML=t.tags.map(tag=>`<span class="tc-tag tag-${tag}">${tagName(tag)}</span>`).join('');
     const bonusHTML=Object.entries(t.statBonus).map(([k,v])=>{
@@ -1211,9 +1246,14 @@ function renderTrainingMenu() {
       return `<span style="font-size:9px;color:${col[k]||'#aaa'};font-weight:700">+${v} ${statShort(k)}</span>`;
     }).join(' ');
 
-    const warningHTML=isHighLoadBlocked
-      ? `<div style="font-size:9px;color:#e07b00;margin-top:3px">⚠️ 超回復中 - 今日は避けよう</div>`
-      : '';
+    let warningHTML='';
+    if (showWarning) {
+      const reasons=[];
+      if (isLessonHighLoad) reasons.push('今日は習い事で高負荷（キャスク・セキ先生・試合など）の日');
+      if (isRecentHighLoad) reasons.push('前日に高負荷トレ実施済み');
+      if (isTomorrowLessonHighLoad) reasons.push('明日は高負荷な習い事（キャスク・セキ先生・試合など）の予定あり');
+      warningHTML = `<div style="font-size:9px;color:#e07b00;margin-top:3px">⚠️ 超回復中かも（${reasons.join('／')}）。無理せず様子を見てね</div>`;
+    }
     const travelBadge=t.travelOk?'<span style="font-size:9px;background:rgba(0,120,80,0.3);color:#6affcc;border-radius:10px;padding:1px 6px;border:1px solid rgba(0,120,80,0.5)">✈️旅先OK</span>':'';
 
     // 継続系トレのバッジ＆コンボXP表示
@@ -1237,7 +1277,7 @@ function renderTrainingMenu() {
       </div>
       ${comboXP}
     `;
-    if(!isHighLoadBlocked) card.onclick=()=>openTrainingModal(t);
+    card.onclick=()=>openTrainingModal(t); // 常にクリック可能
     c.appendChild(card);
   });
 }
@@ -1384,8 +1424,12 @@ function openDayModal(date, key, def) {
   } else {
     lessonCardsHTML = def.lessons.map(lesson=>{
       const rec = lessonRecords[lesson.id] || { attended:false, activities:[] };
+      const legacyActivities = rec.activities.filter(a=>!lesson.activities.includes(a));
       let activitiesHTML = '';
       if (lesson.isPhysical && lesson.activities.length) {
+        const legacyHTML = legacyActivities.length ? `
+          <div style="font-size:9px;color:#888;margin-top:6px">📌 以前の記録：${legacyActivities.join('・')}（メニュー見直しにより選択肢からは削除済み、記録は保持されています）</div>
+        ` : '';
         activitiesHTML = `
           <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);display:${rec.attended?'block':'none'}" id="acts_${lesson.id}">
             <div style="font-size:10px;color:#aaa;margin-bottom:6px">実施した内容を選んでね（複数選択OK）：</div>
@@ -1398,6 +1442,7 @@ function openDayModal(date, key, def) {
                 </label>`;
               }).join('')}
             </div>
+            ${legacyHTML}
           </div>`;
       }
       return `
@@ -1441,11 +1486,21 @@ function saveLessonRecords(key){
   const newLessonRecords = {};
   let newlyAttended = [];
 
+  const dayRecordForSave = state.completedDays[key] || {};
+  const prevRecordsForSave = dayRecordForSave.lessonRecords || {};
+
   lessonChecks.forEach(cb=>{
     const lessonId = cb.dataset.lesson;
     const attended = cb.checked;
     const activityChecks = document.querySelectorAll(`.act-check[data-lesson="${lessonId}"]:checked`);
-    const activities = Array.from(activityChecks).map(a=>a.value);
+    const shownActivityValues = Array.from(document.querySelectorAll(`.act-check[data-lesson="${lessonId}"]`)).map(a=>a.value);
+    const checkedNow = Array.from(activityChecks).map(a=>a.value);
+
+    // 画面に表示されていない過去の選択（廃止済みメニュー名）は保持する
+    const prevActivities = (prevRecordsForSave[lessonId] && prevRecordsForSave[lessonId].activities) || [];
+    const legacyKept = prevActivities.filter(a => !shownActivityValues.includes(a));
+    const activities = [...checkedNow, ...legacyKept];
+
     newLessonRecords[lessonId] = { attended, activities };
     if (attended) newlyAttended.push(lessonId);
   });
@@ -1491,6 +1546,12 @@ function saveLessonRecords(key){
   });
 
   state.completedDays[key].lessonRecords = newLessonRecords;
+
+  // 何かしら新規で記録があれば継続日数（streak）も更新
+  if (newlyAttended.length > 0) {
+    updateStreakOnRecord(key);
+  }
+
   if (addedXP > 0) addXP(addedXP, statBonusAgg, key);
   else save();
 
@@ -1498,6 +1559,7 @@ function saveLessonRecords(key){
   renderSchedule();
   renderAchievements();
   renderLog();
+  renderGrowth();
 }
 
 function openTrainingModal(t) {
@@ -1548,15 +1610,10 @@ function doTraining(t, dateKey){
   if(t.cat==='recovery') state.recoveryCnt=(state.recoveryCnt||0)+1;
   if(t.highLoad) state.highLoadDone[targetKey]=true;
 
-  // 継続系トレーニングならコンボ加算＆成長+1%（過去日付選択時はコンボ計算をスキップし、当日相当の加算のみ）
-  let comboMult=1;
-  if(CONTINUOUS_IDS.has(t.id)){
-    const todayKey = new Date().toISOString().slice(0,10);
-    if (targetKey === todayKey) {
-      comboMult=updateStreakOnTrain(targetKey);
-    }
-  }
-  addXP(Math.round(t.xp*comboMult),t.statBonus,targetKey);
+  // 何をやっても継続日数（streak）の対象。継続系メニュー(CONTINUOUS_IDS)はXPコンボ倍率も追加でつく。
+  const comboMult = updateStreakOnRecord(targetKey);
+  const finalMult = CONTINUOUS_IDS.has(t.id) ? comboMult : 1;
+  addXP(Math.round(t.xp*finalMult),t.statBonus,targetKey);
   // ログに記録（振り返り用）
   logTrainingEntry(targetKey, t);
   closeModal(); renderAchievements(); renderGrowth(); renderLog();
@@ -1573,8 +1630,15 @@ function logTrainingEntry(dateKey, t){
 }
 
 // 継続系トレを実施した時のコンボ更新。返り値はXP倍率
-function updateStreakOnTrain(todayKey){
-  // 既に今日継続系をやっていればコンボ据え置き（重複加算しない）
+// 指定日付に「何かしらの記録」があった場合の継続日数更新（習い事参加・自主トレ問わず対象）
+// 過去日付を選んだ場合は当日ベースのstreak計算にはノータッチ（不自然な巻き戻りを防ぐ）
+function updateStreakOnRecord(dateKey){
+  const todayKey = new Date().toISOString().slice(0,10);
+  if (dateKey !== todayKey) {
+    // 過去日付への追記時は成長度だけ加点し、streakのロジックは今日の分に影響させない
+    return 1;
+  }
+  // 既に今日何か記録していればコンボ据え置き（重複加算しない）
   if(state.lastContinuousDay===todayKey){
     return 1 + Math.min(state.streak,50)*0.01;
   }
@@ -1595,8 +1659,14 @@ function updateStreakOnTrain(todayKey){
   return mult;
 }
 
+function updateStreakOnTrain(todayKey){
+  return updateStreakOnRecord(todayKey);
+}
+
 // 休養日かどうか判定（ペナルティ除外用）
 function isRestDay(date){
+  const key = date.toISOString().slice(0,10);
+  if (state.restDeclared && state.restDeclared[key]) return true; // その場で「今日は休む」を宣言した日
   const def=getDayDef(date);
   return def.load==='high' || def.load==='rest'; // 高負荷習い事の日／回復日は休んでOK
 }
@@ -1641,6 +1711,38 @@ function renderGrowth(){
       ? 'linear-gradient(90deg,#4a8c3f,#8aff8a)'
       : 'linear-gradient(90deg,#c0152b,#ff6b6b)';
   }
+  // 今日休養宣言済みかどうかでボタン表示を切り替え
+  const restBtn = document.getElementById('restBtn');
+  if(restBtn){
+    const todayKey = new Date().toISOString().slice(0,10);
+    const alreadyRested = state.restDeclared && state.restDeclared[todayKey];
+    if(alreadyRested){
+      restBtn.textContent = '✅ 今日は休養日として記録済み';
+      restBtn.style.background = 'rgba(74,140,63,0.2)';
+      restBtn.style.borderColor = 'rgba(74,140,63,0.5)';
+      restBtn.style.color = '#8aff8a';
+    } else {
+      restBtn.textContent = '😴 今日は休む（ペナルティなし）';
+      restBtn.style.background = 'rgba(26,107,181,0.15)';
+      restBtn.style.borderColor = 'rgba(26,107,181,0.4)';
+      restBtn.style.color = '#8ab4ff';
+    }
+  }
+}
+
+// 「今日は休む」をその場で宣言する
+function declareRestToday(){
+  const todayKey = new Date().toISOString().slice(0,10);
+  if(state.restDeclared && state.restDeclared[todayKey]){
+    alert('今日はもう休養日として記録済みだよ！ゆっくり休んでね😴');
+    return;
+  }
+  if(!state.restDeclared) state.restDeclared = {};
+  state.restDeclared[todayKey] = true;
+  // 休養宣言時はstreakを維持したまま成長度も減らさない（ペナルティなし）
+  save();
+  renderGrowth();
+  alert('今日は休養日として記録したよ！ちゃんと休むのも大事なトレーニング😴');
 }
 
 function addXP(amount, bonuses, dayKey) {
