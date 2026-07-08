@@ -526,7 +526,8 @@
 <!-- TRAINING LOG (振り返り) -->
 <div class="section-title" style="margin-top:16px">📖 これまでの記録</div>
 <div style="padding:0 12px 16px">
-  <button onclick="recalcPastStats()" style="width:100%;margin-bottom:12px;background:rgba(255,215,0,0.1);border:1px solid var(--gold-dark);color:var(--gold);border-radius:10px;padding:10px;font-size:12px;font-family:inherit;cursor:pointer">🔧 過去の記録を再計算する（ステータス反映バグの修正・初回のみ）</button>
+  <button onclick="recalcPastStats()" style="width:100%;margin-bottom:8px;background:rgba(255,215,0,0.1);border:1px solid var(--gold-dark);color:var(--gold);border-radius:10px;padding:10px;font-size:12px;font-family:inherit;cursor:pointer">🔧 過去の記録を再計算する（ステータス反映バグの修正・初回のみ）</button>
+  <button onclick="recalcStreak()" style="width:100%;margin-bottom:12px;background:rgba(255,107,53,0.1);border:1px solid rgba(255,107,53,0.4);color:#ff8a4d;border-radius:10px;padding:10px;font-size:12px;font-family:inherit;cursor:pointer">🔥 継続日数を再計算する（タイムゾーンバグの修正・初回のみ）</button>
   <div style="display:flex;gap:6px;margin-bottom:10px" id="logDateTabs"></div>
   <div id="logEntries" style="max-height:300px;overflow-y:auto"></div>
 </div>
@@ -587,6 +588,20 @@
 const TOTAL_WEEKS = 8;
 const START_DATE = new Date('2026-07-06');
 const XP_PER_LEVEL = [0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700, 3300];
+
+// タイムゾーンに依存しない「ローカル日付」のYYYY-MM-DD文字列を取得するヘルパー
+// ※ date.toISOString().slice(0,10) はUTC変換されるため、日本時間などUTC以外のタイムゾーンでは
+//   日付がズレるバグの原因になる（例：日本時間の深夜0時がUTCでは前日15時になる）。
+//   日付キーが必要な箇所は必ずこちらのtoDateKey/todayDateKeyを使うこと。
+function toDateKey(date){
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+function todayDateKey(){
+  return toDateKey(new Date());
+}
 
 let state = {
   xp: 0, level: 1,
@@ -815,7 +830,7 @@ function calcActivityStatBonus(activities){
 }
 
 function getDayDef(date) {
-  const key = date.toISOString().slice(0,10);
+  const key = toDateKey(date);
   const dow  = date.getDay(); // 0=日,1=月,2=火,3=水,4=木,5=金,6=土
 
   // 事前登録の休養日は最優先（習い事があっても表示上は休養日として扱う）
@@ -831,8 +846,11 @@ function getDayDef(date) {
   const clinicL = CLINIC[key] ? [mkLesson('clinic','🏥 皮膚科 '+CLINIC[key], false)] : [];
   const ryunosukeL = RYUNOSUKE_TIMES[key] ? [mkLesson('ryunosuke','⚾ 龍之介コーチ '+RYUNOSUKE_TIMES[key], true, ACTIVITY_PRESETS.ryunosuke)] : [];
   const kawakamiTime = KAWAKAMI[key];
-  const kawakamiL = kawakamiTime ? [mkLesson('kawakami','🏏 川上コーチ '+kawakamiTime, true, ACTIVITY_PRESETS.kawakami)]
-                    : [mkLesson('kawakami','🏏 川上コーチ 18:30-19:00', true, ACTIVITY_PRESETS.kawakami)];
+  // 川上コーチは「火・金」が基本の曜日、またはKAWAKAMIに個別登録がある日のみ存在する
+  const isKawakamiDay = kawakamiTime || dow===2 || dow===5;
+  const kawakamiL = isKawakamiDay
+    ? [mkLesson('kawakami','🏏 川上コーチ '+(kawakamiTime || '18:30-19:00'), true, ACTIVITY_PRESETS.kawakami)]
+    : [];
   const litalicoL = LITALICO_DAYS.has(key) ? [mkLesson('litalico','🤖 LITALICO 15:40-17:20（移動込15:10-17:50目安）', false)] : [];
   const programmingL = PROGRAMMING_DAYS.has(key) ? [mkLesson('programming','💻 プログラミング教室 19:10-20:00（移動込18:55-20:15目安）', false)] : [];
   const swimmingL = (SWIMMING_DAYS.has(key) || dow===4) ? [mkLesson('swimming','🏊 こうきスイミング 17:40-18:40（17:30集合、移動込16:55-19:25目安）', true, ACTIVITY_PRESETS.swimming)] : [];
@@ -1048,7 +1066,7 @@ function getWeekDone(s, week) {
   ws.setDate(ws.getDate()+(week-1)*7);
   for(let i=0;i<7;i++){
     const d=new Date(ws); d.setDate(d.getDate()+i);
-    if(s.completedDays[d.toISOString().slice(0,10)]) count++;
+    if(s.completedDays[toDateKey(d)]) count++;
   }
   return count;
 }
@@ -1068,8 +1086,8 @@ function adjacentHighLoad(key) {
   const d = new Date(key);
   const prev = new Date(d); prev.setDate(prev.getDate()-1);
   const next = new Date(d); next.setDate(next.getDate()+1);
-  return state.highLoadDone[prev.toISOString().slice(0,10)]
-      || state.highLoadDone[next.toISOString().slice(0,10)];
+  return state.highLoadDone[toDateKey(prev)]
+      || state.highLoadDone[toDateKey(next)];
 }
 
 // ===== RENDER: STATUS =====
@@ -1129,7 +1147,7 @@ function renderSchedule() {
   // 月〜日の順で7日表示
   for(let i=0;i<7;i++){
     const d=new Date(ws); d.setDate(d.getDate()+i);
-    const key=d.toISOString().slice(0,10);
+    const key=toDateKey(d);
     const dow=d.getDay();
     const def=getDayDef(d);
     const dayRecord = state.completedDays[key];
@@ -1210,7 +1228,7 @@ function renderTrainingMenu() {
   const c=document.getElementById('trainingMenu'); c.innerHTML='';
   const today=new Date();
   const isWeekend=today.getDay()===0||today.getDay()===6;
-  const todayKey=today.toISOString().slice(0,10);
+  const todayKey=toDateKey(today);
   const isTodayTravel=OKINAWA.has(todayKey);
 
   const visible=trainings.filter(t=>{
@@ -1303,7 +1321,7 @@ function renderAchievements(){
 }
 
 // ===== 実施ログ振り返り =====
-let logSelectedDate = new Date().toISOString().slice(0,10);
+let logSelectedDate = todayDateKey();
 
 // ===== 過去記録のステータス再計算（バグ修正パッチ） =====
 // 以前のバージョンでは運動系レッスンの実施内容が「stam+1」のみに固定されていたため、
@@ -1361,6 +1379,51 @@ function recalcPastStats(){
   alert(`${affectedDays}日分の記録を再計算しました！\n${summary}`);
 }
 
+// ===== 継続日数（streak）の再計算 =====
+// タイムゾーンバグ等で正しくカウントされなかった継続日数を、実際の記録データから逆算して補正する。
+// 「記録がある日」を日付順に並べ、連続している最新の連続日数を数え直す。
+function recalcStreak(){
+  if (state.streakRecalcDone) {
+    alert('継続日数の再計算はすでに実行済みです。');
+    return;
+  }
+  const recordedDays = Object.keys(state.completedDays || {}).sort();
+  if (recordedDays.length === 0) {
+    alert('記録がまだありません。');
+    return;
+  }
+
+  // 今日から遡って、連続して記録がある日数を数える
+  const todayKey = todayDateKey();
+  let cursor = new Date(todayKey);
+  let streak = 0;
+  let cursorKey = toDateKey(cursor);
+
+  // 今日まだ記録がなければ、直近で記録がある日から数え始める（今日サボっていても過去の連続は評価する）
+  if (!state.completedDays[cursorKey]) {
+    cursor.setDate(cursor.getDate()-1);
+    cursorKey = toDateKey(cursor);
+  }
+
+  while (state.completedDays[cursorKey]) {
+    streak++;
+    cursor.setDate(cursor.getDate()-1);
+    cursorKey = toDateKey(cursor);
+  }
+
+  const oldStreak = state.streak;
+  state.streak = streak;
+  // 最後に記録した日をlastContinuousDayとして設定し直す
+  const lastRecorded = recordedDays[recordedDays.length-1];
+  state.lastContinuousDay = lastRecorded;
+
+  state.streakRecalcDone = true;
+  save();
+  renderGrowth();
+
+  alert(`継続日数を再計算しました！\n${oldStreak}日 → ${streak}日`);
+}
+
 function renderLog(){
   const tabsEl = document.getElementById('logDateTabs');
   const entriesEl = document.getElementById('logEntries');
@@ -1371,7 +1434,7 @@ function renderLog(){
   const today = new Date(); today.setHours(0,0,0,0);
   for(let i=0;i<10;i++){
     const d = new Date(today); d.setDate(d.getDate()-i);
-    const dKey = d.toISOString().slice(0,10);
+    const dKey = toDateKey(d);
     const hasLog = state.trainingLog && state.trainingLog[dKey] && state.trainingLog[dKey].length>0;
     const btn = document.createElement('button');
     btn.className = 'week-tab' + (logSelectedDate===dKey ? ' active' : '');
@@ -1575,7 +1638,7 @@ function openTrainingModal(t) {
   let dateOptionsHTML = '';
   for(let i=0;i<7;i++){
     const d = new Date(today); d.setDate(d.getDate()-i);
-    const dKey = d.toISOString().slice(0,10);
+    const dKey = toDateKey(d);
     const label = i===0 ? `今日 (${d.getMonth()+1}/${d.getDate()})` : `${d.getMonth()+1}/${d.getDate()}（${['日','月','火','水','木','金','土'][d.getDay()]}）`;
     dateOptionsHTML += `<option value="${dKey}" ${i===0?'selected':''}>${label}</option>`;
   }
@@ -1606,7 +1669,7 @@ function openTrainingModal(t) {
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
 
 function doTraining(t, dateKey){
-  const targetKey = dateKey || new Date().toISOString().slice(0,10);
+  const targetKey = dateKey || todayDateKey();
   if(t.cat==='recovery') state.recoveryCnt=(state.recoveryCnt||0)+1;
   if(t.highLoad) state.highLoadDone[targetKey]=true;
 
@@ -1633,7 +1696,7 @@ function logTrainingEntry(dateKey, t){
 // 指定日付に「何かしらの記録」があった場合の継続日数更新（習い事参加・自主トレ問わず対象）
 // 過去日付を選んだ場合は当日ベースのstreak計算にはノータッチ（不自然な巻き戻りを防ぐ）
 function updateStreakOnRecord(dateKey){
-  const todayKey = new Date().toISOString().slice(0,10);
+  const todayKey = todayDateKey();
   if (dateKey !== todayKey) {
     // 過去日付への追記時は成長度だけ加点し、streakのロジックは今日の分に影響させない
     return 1;
@@ -1644,7 +1707,7 @@ function updateStreakOnRecord(dateKey){
   }
   const yesterday=new Date(todayKey);
   yesterday.setDate(yesterday.getDate()-1);
-  const yKey=yesterday.toISOString().slice(0,10);
+  const yKey=toDateKey(yesterday);
 
   if(state.lastContinuousDay===yKey){
     state.streak+=1; // 連続！
@@ -1665,7 +1728,7 @@ function updateStreakOnTrain(todayKey){
 
 // 休養日かどうか判定（ペナルティ除外用）
 function isRestDay(date){
-  const key = date.toISOString().slice(0,10);
+  const key = toDateKey(date);
   if (state.restDeclared && state.restDeclared[key]) return true; // その場で「今日は休む」を宣言した日
   const def=getDayDef(date);
   return def.load==='high' || def.load==='rest'; // 高負荷習い事の日／回復日は休んでOK
@@ -1675,14 +1738,14 @@ function isRestDay(date){
 function checkGrowthDecay(){
   if(!state.lastContinuousDay) return; // まだ一度もやってない
   const today=new Date(); today.setHours(0,0,0,0);
-  const todayKey=today.toISOString().slice(0,10);
+  const todayKey=toDateKey(today);
 
   // 最後にやった日から今日までの「休養日でない未実施日」をカウント
   let cursor=new Date(state.lastContinuousDay);
   cursor.setDate(cursor.getDate()+1);
   let missed=0;
   while(cursor < today){
-    const cKey=cursor.toISOString().slice(0,10);
+    const cKey=toDateKey(cursor);
     const didTrain=!!state.completedDays[cKey];
     if(!didTrain && !isRestDay(cursor)){
       missed++;
@@ -1714,7 +1777,7 @@ function renderGrowth(){
   // 今日休養宣言済みかどうかでボタン表示を切り替え
   const restBtn = document.getElementById('restBtn');
   if(restBtn){
-    const todayKey = new Date().toISOString().slice(0,10);
+    const todayKey = todayDateKey();
     const alreadyRested = state.restDeclared && state.restDeclared[todayKey];
     if(alreadyRested){
       restBtn.textContent = '✅ 今日は休養日として記録済み';
@@ -1732,7 +1795,7 @@ function renderGrowth(){
 
 // 「今日は休む」をその場で宣言する
 function declareRestToday(){
-  const todayKey = new Date().toISOString().slice(0,10);
+  const todayKey = todayDateKey();
   if(state.restDeclared && state.restDeclared[todayKey]){
     alert('今日はもう休養日として記録済みだよ！ゆっくり休んでね😴');
     return;
