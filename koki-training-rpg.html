@@ -526,8 +526,7 @@
 <!-- TRAINING LOG (振り返り) -->
 <div class="section-title" style="margin-top:16px">📖 これまでの記録</div>
 <div style="padding:0 12px 16px">
-  <button onclick="recalcPastStats()" style="width:100%;margin-bottom:8px;background:rgba(255,215,0,0.1);border:1px solid var(--gold-dark);color:var(--gold);border-radius:10px;padding:10px;font-size:12px;font-family:inherit;cursor:pointer">🔧 過去の記録を再計算する（ステータス反映バグの修正・初回のみ）</button>
-  <button onclick="recalcStreak()" style="width:100%;margin-bottom:12px;background:rgba(255,107,53,0.1);border:1px solid rgba(255,107,53,0.4);color:#ff8a4d;border-radius:10px;padding:10px;font-size:12px;font-family:inherit;cursor:pointer">🔥 継続日数を再計算する（タイムゾーンバグの修正・初回のみ）</button>
+  <button onclick="recalcAll()" style="width:100%;margin-bottom:12px;background:rgba(255,215,0,0.1);border:1px solid var(--gold-dark);color:var(--gold);border-radius:10px;padding:10px;font-size:12px;font-family:inherit;cursor:pointer">🔧 データを再計算する（ステータス・継続日数・成長度を正しい値に再構築。何度でも安全に実行可能）</button>
   <div style="display:flex;gap:6px;margin-bottom:10px" id="logDateTabs"></div>
   <div id="logEntries" style="max-height:300px;overflow-y:auto"></div>
 </div>
@@ -1326,102 +1325,104 @@ let logSelectedDate = todayDateKey();
 // ===== 過去記録のステータス再計算（バグ修正パッチ） =====
 // 以前のバージョンでは運動系レッスンの実施内容が「stam+1」のみに固定されていたため、
 // 実際に選んだ内容（素振り→バット、ダッシュ→走力等）に応じた正しいステータスへ振り替える。
-function recalcPastStats(){
-  if (state.statsRecalcDone) {
-    alert('既に再計算は実行済みです。');
-    return;
-  }
-  let totalDiff = {};
-  let affectedDays = 0;
-
-  Object.entries(state.completedDays || {}).forEach(([dateKey, dayRecord])=>{
-    const lessonRecords = dayRecord.lessonRecords || {};
-    const def = getDayDef(new Date(dateKey));
-    let dayHadPhysical = false;
-
-    Object.entries(lessonRecords).forEach(([lessonId, rec])=>{
-      if (!rec.attended) return;
-      const lesson = def.lessons.find(l=>l.id===lessonId);
-      if (!lesson || !lesson.isPhysical) return;
-      if (!rec.activities || rec.activities.length===0) return;
-
-      dayHadPhysical = true;
-      // 正しいステータス配分
-      const correct = calcActivityStatBonus(rec.activities);
-      Object.entries(correct).forEach(([k,v])=>{
-        totalDiff[k] = (totalDiff[k]||0) + v;
-      });
-      // 旧バグ分の埋め合わせ（stam+1が誤って入っていた分を打ち消す）
-      totalDiff.stam = (totalDiff.stam||0) - 1;
-    });
-
-    if (dayHadPhysical) affectedDays++;
-  });
-
-  if (Object.keys(totalDiff).length === 0) {
-    alert('再計算対象の記録が見つかりませんでした。');
-    return;
-  }
-
-  // ステータスに差分を適用（0未満にはならないようガード）
-  Object.entries(totalDiff).forEach(([k,v])=>{
-    state.stats[k] = Math.max(0, Math.min(99, (state.stats[k]||30) + v));
-  });
-
-  state.statsRecalcDone = true;
-  save();
-  renderStatus();
-
-  const summary = Object.entries(totalDiff).map(([k,v])=>{
-    const n={bat:'バッティング',thr:'投球',run:'走力',stam:'体力',men:'メンタル'};
-    return `${n[k]||k}: ${v>=0?'+':''}${v}`;
-  }).join(' / ');
-  alert(`${affectedDays}日分の記録を再計算しました！\n${summary}`);
-}
-
-// ===== 継続日数（streak）の再計算 =====
-// タイムゾーンバグ等で正しくカウントされなかった継続日数を、実際の記録データから逆算して補正する。
-// 「記録がある日」を日付順に並べ、連続している最新の連続日数を数え直す。
-function recalcStreak(){
-  if (state.streakRecalcDone) {
-    alert('継続日数の再計算はすでに実行済みです。');
-    return;
-  }
+// ===== データ一括再計算（何度でも安全に実行可能） =====
+// ステータス・継続日数・成長度を、記録データからゼロベースで再構築する。
+// 差分計算ではなく毎回フル計算なので、何度押しても結果は同じ。
+function recalcAll(){
+  const BASE_STATS = {bat:30, thr:30, run:30, stam:30, men:30};
   const recordedDays = Object.keys(state.completedDays || {}).sort();
+
   if (recordedDays.length === 0) {
     alert('記録がまだありません。');
     return;
   }
 
-  // 今日から遡って、連続して記録がある日数を数える
-  const todayKey = todayDateKey();
-  let cursor = new Date(todayKey);
-  let streak = 0;
-  let cursorKey = toDateKey(cursor);
+  // ===== ① ステータスをゼロから再構築 =====
+  const newStats = {...BASE_STATS};
 
-  // 今日まだ記録がなければ、直近で記録がある日から数え始める（今日サボっていても過去の連続は評価する）
+  // (A) 習い事(lessonRecords)の実施内容分
+  Object.entries(state.completedDays || {}).forEach(([dateKey, dayRecord])=>{
+    const lessonRecords = dayRecord.lessonRecords || {};
+    Object.entries(lessonRecords).forEach(([lessonId, rec])=>{
+      if (!rec.attended || !rec.activities || rec.activities.length===0) return;
+      const bonus = calcActivityStatBonus(rec.activities);
+      Object.entries(bonus).forEach(([k,v])=>{
+        newStats[k] = Math.min(99, (newStats[k]||30) + v);
+      });
+    });
+  });
+
+  // (B) 自主トレメニュー(trainingLog)のstatBonus分
+  Object.entries(state.trainingLog || {}).forEach(([dateKey, entries])=>{
+    entries.forEach(entry=>{
+      // trainingLogにはname/icon/xp/timeしか保持されていないため、
+      // trainings配列からIDを特定してstatBonusを取得する
+      const t = trainings.find(tr=>tr.name === entry.name);
+      if (t && t.statBonus) {
+        Object.entries(t.statBonus).forEach(([k,v])=>{
+          newStats[k] = Math.min(99, (newStats[k]||30) + v);
+        });
+      }
+    });
+  });
+
+  const oldStats = {...state.stats};
+
+  // ===== ② 継続日数を記録データから逆算 =====
+  const todayKey = todayDateKey();
+  let cursor = new Date();
+  let cursorKey = toDateKey(cursor);
+  let streak = 0;
+
+  // 今日まだ記録がなければ、直近の記録日から数え始める
   if (!state.completedDays[cursorKey]) {
     cursor.setDate(cursor.getDate()-1);
     cursorKey = toDateKey(cursor);
   }
-
   while (state.completedDays[cursorKey]) {
     streak++;
     cursor.setDate(cursor.getDate()-1);
     cursorKey = toDateKey(cursor);
   }
 
-  const oldStreak = state.streak;
-  state.streak = streak;
-  // 最後に記録した日をlastContinuousDayとして設定し直す
   const lastRecorded = recordedDays[recordedDays.length-1];
-  state.lastContinuousDay = lastRecorded;
 
-  state.streakRecalcDone = true;
+  // ===== ③ 成長度を記録日数から再計算 =====
+  // 基準100% + 記録がある日数 × 1% - 休養日でない未記録日 × 1%
+  const startDate = new Date(START_DATE);
+  const todayDate = new Date(); todayDate.setHours(0,0,0,0);
+  let growthPlus = recordedDays.length; // 記録した日数分 +1%ずつ
+  let growthMinus = 0;
+  // START_DATEから今日まで走査し、記録もなく休養日でもない日をカウント
+  let scanCursor = new Date(startDate);
+  while (scanCursor <= todayDate) {
+    const sKey = toDateKey(scanCursor);
+    const hasRecord = !!state.completedDays[sKey];
+    const isDeclaredRest = state.restDeclared && state.restDeclared[sKey];
+    if (!hasRecord && !isDeclaredRest && !isRestDay(scanCursor)) {
+      growthMinus++;
+    }
+    scanCursor.setDate(scanCursor.getDate()+1);
+  }
+  const newGrowth = Math.max(1, Math.round((100 + growthPlus - growthMinus)*10)/10);
+
+  // ===== 結果を適用 =====
+  state.stats = newStats;
+  state.streak = streak;
+  state.lastContinuousDay = lastRecorded;
+  state.growth = newGrowth;
   save();
+  renderStatus();
   renderGrowth();
 
-  alert(`継続日数を再計算しました！\n${oldStreak}日 → ${streak}日`);
+  // 結果メッセージ
+  const n = {bat:'バッティング',thr:'投球',run:'走力',stam:'体力',men:'メンタル'};
+  const statSummary = Object.keys(BASE_STATS).map(k=>{
+    const diff = newStats[k] - oldStats[k];
+    return `${n[k]}: ${oldStats[k]}→${newStats[k]}(${diff>=0?'+':''}${diff})`;
+  }).join('\n');
+
+  alert(`データを再計算しました！\n\n【ステータス】\n${statSummary}\n\n【継続日数】${state.streak}日\n【成長度】${newGrowth}%\n【最終記録日】${lastRecorded}`);
 }
 
 function renderLog(){
