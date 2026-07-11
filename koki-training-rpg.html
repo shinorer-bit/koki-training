@@ -657,16 +657,24 @@ function syncToServer(){
 // サーバーから読み込み（起動時）
 function loadFromServer(){
   fetch(SYNC_URL + '?action=load')
-    .then(r=>r.json())
+    .then(r=>{
+      if(!r.ok){ throw new Error('HTTPエラー: status=' + r.status); }
+      return r.json();
+    })
     .then(serverState=>{
       if(serverState && Object.keys(serverState).length>0){
         // サーバー側が新しければ反映（シンプルに常にサーバーを正として上書き）
         Object.assign(state, serverState);
         saveLocal();
         renderAll({checkDecay:true}); // サーバーの最新データを反映してから、初めてサボり判定を行う
+      } else {
+        alert('【デバッグ】サーバーから空のデータが返ってきました: ' + JSON.stringify(serverState));
       }
     })
-    .catch(()=>{ /* オフライン時は静かに失敗、ローカル保存は既に完了済み */ })
+    .catch((err)=>{
+      // ===== 一時デバッグ：原因特定のためエラー内容を表示 =====
+      alert('【デバッグ】サーバー読み込みエラー: ' + (err && err.message ? err.message : String(err)));
+    })
     .finally(()=>{
       // 読み込みの成功・失敗にかかわらず、初回ロードは完了とみなし、保留していた保存要求があれば送信する。
       initialLoadPending = false;
