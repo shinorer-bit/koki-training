@@ -654,14 +654,15 @@ function loadFromServer(){
         // サーバー側が新しければ反映（シンプルに常にサーバーを正として上書き）
         Object.assign(state, serverState);
         saveLocal();
-        renderAll();
+        renderAll({checkDecay:true}); // サーバーの最新データを反映してから、初めてサボり判定を行う
       }
     })
-    .catch(()=>{ /* オフライン時はローカルキャッシュのまま表示継続 */ });
+    .catch(()=>{ /* オフライン時は静かに失敗、ローカル保存は既に完了済み */ });
 }
 
-function renderAll(){
-  checkGrowthDecay();
+function renderAll(opts){
+  opts = opts || {};
+  if (opts.checkDecay) checkGrowthDecay();
   renderStatus();
   renderGrowth();
   renderWeekTabs();
@@ -1856,10 +1857,13 @@ function closeRules(){
 }
 
 // ===== INIT =====
-// ① まずローカルキャッシュで即座に画面表示（体感速度優先）
-renderAll();
+// ① まずローカルキャッシュで即座に画面表示（体感速度優先）。
+//    ここではまだサーバーの最新状態を取得していないため、サボり判定(checkGrowthDecay)は行わない。
+//    （他端末で最新の記録がある場合、古いローカルキャッシュに基づいて誤ってペナルティを課してしまうバグを防ぐため）
+renderAll({checkDecay:false});
 showRules(false);
-// ② その後サーバーから最新データを取得して上書き（他端末の更新を反映）
+// ② その後サーバーから最新データを取得して上書き（他端末の更新を反映）。
+//    ここで初めてサボり判定を行う。
 loadFromServer();
 
 // 同期状態インジケーター（任意・軽い表示）
