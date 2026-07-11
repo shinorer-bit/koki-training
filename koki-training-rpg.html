@@ -620,6 +620,9 @@ let state = {
 const SYNC_URL = 'https://script.google.com/macros/s/AKfycbyEl3dxEbsfcyWHM3xuoAWHZhLWeQl5uIwa9--YZeRHuNmm6lAp8JoIZyqE3rXwMpML/exec';
 let isSyncing = false;
 let pendingSync = false;
+// サーバーからの初回読み込みが完了する（または失敗が確定する）まではtrueのまま。
+// これがfalseの間は、間違って初期値や古いデータをサーバーへ送信してしまわないよう、syncToServerを待機させる。
+let initialLoadPending = true;
 
 // 起動時：まずローカルキャッシュを即座に反映（オフラインでも表示できるように）
 try { const s = localStorage.getItem('koki-2026'); if(s) Object.assign(state, JSON.parse(s)); } catch(e){}
@@ -634,6 +637,12 @@ function save(){
 }
 
 function syncToServer(){
+  if (initialLoadPending) {
+    // サーバーからの初回読み込みがまだ済んでいない間は、うっかり初期値やローカルの古いデータで
+    // サーバーを上書きしてしまわないよう、送信を保留する（ロード完了後にまとめて送信される）。
+    pendingSync = true;
+    return;
+  }
   if(isSyncing){ pendingSync=true; return; }
   isSyncing=true;
   const body = 'action=save&data=' + encodeURIComponent(JSON.stringify(state));
@@ -657,7 +666,12 @@ function loadFromServer(){
         renderAll({checkDecay:true}); // サーバーの最新データを反映してから、初めてサボり判定を行う
       }
     })
-    .catch(()=>{ /* オフライン時は静かに失敗、ローカル保存は既に完了済み */ });
+    .catch(()=>{ /* オフライン時は静かに失敗、ローカル保存は既に完了済み */ })
+    .finally(()=>{
+      // 読み込みの成功・失敗にかかわらず、初回ロードは完了とみなし、保留していた保存要求があれば送信する。
+      initialLoadPending = false;
+      if (pendingSync) { pendingSync = false; syncToServer(); }
+    });
 }
 
 function renderAll(opts){
