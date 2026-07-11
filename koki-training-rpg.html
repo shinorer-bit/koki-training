@@ -654,50 +654,22 @@ function syncToServer(){
     });
 }
 
-// ===== 一時デバッグ：画面上に状態を表示するバナー（alertがブロックされる環境向け） =====
-function showDebugBanner(msg){
-  let el = document.getElementById('debugBanner');
-  if(!el){
-    el = document.createElement('div');
-    el.id = 'debugBanner';
-    el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#c0152b;color:#fff;font-size:12px;padding:10px;z-index:9999;word-break:break-all;max-height:40vh;overflow-y:auto;';
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-}
-
 // サーバーから読み込み（起動時）
 function loadFromServer(){
-  showDebugBanner('【デバッグ】サーバーへ読み込みリクエスト送信中... URL=' + SYNC_URL);
   fetch(SYNC_URL + '?action=load')
     .then(r=>{
-      showDebugBanner('【デバッグ】レスポンス受信 status=' + r.status + ' ok=' + r.ok + ' type=' + r.type + ' url=' + r.url);
       if(!r.ok){ throw new Error('HTTPエラー: status=' + r.status); }
-      return r.text();
+      return r.json();
     })
-    .then(text=>{
-      showDebugBanner('【デバッグ】受信内容(先頭300文字): ' + text.slice(0,300));
-      let serverState;
-      try {
-        serverState = JSON.parse(text);
-      } catch(parseErr) {
-        showDebugBanner('【デバッグ】JSONパース失敗: ' + parseErr.message + ' / 受信内容: ' + text.slice(0,300));
-        throw parseErr;
-      }
+    .then(serverState=>{
       if(serverState && Object.keys(serverState).length>0){
         // サーバー側が新しければ反映（シンプルに常にサーバーを正として上書き）
         Object.assign(state, serverState);
         saveLocal();
         renderAll({checkDecay:true}); // サーバーの最新データを反映してから、初めてサボり判定を行う
-        showDebugBanner('【デバッグ】反映成功！ xp=' + state.xp + ' 3秒後にこのバナーは消えます');
-        setTimeout(()=>{ const b=document.getElementById('debugBanner'); if(b) b.remove(); }, 3000);
-      } else {
-        showDebugBanner('【デバッグ】サーバーから空のデータが返ってきました: ' + JSON.stringify(serverState));
       }
     })
-    .catch((err)=>{
-      showDebugBanner('【デバッグ】読み込みエラー: ' + (err && err.message ? err.message : String(err)));
-    })
+    .catch(()=>{ /* オフライン時は静かに失敗、ローカル保存は既に完了済み */ })
     .finally(()=>{
       // 読み込みの成功・失敗にかかわらず、初回ロードは完了とみなし、保留していた保存要求があれば送信する。
       initialLoadPending = false;
