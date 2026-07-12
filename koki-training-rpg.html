@@ -231,6 +231,37 @@
     gap: 4px;
     padding: 0 12px;
   }
+
+  /* SUMMER CHALLENGE */
+  .challenge-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 0 12px 16px;
+  }
+  .challenge-card {
+    background: linear-gradient(135deg, rgba(255,180,0,0.08), rgba(255,100,0,0.04));
+    border: 1px solid rgba(255,180,0,0.3);
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .challenge-card:hover { border-color: rgba(255,180,0,0.6); transform: translateY(-2px); }
+  .challenge-card.achieved {
+    background: linear-gradient(135deg, rgba(74,140,63,0.15), rgba(74,140,63,0.05));
+    border-color: rgba(74,140,63,0.5);
+  }
+  .challenge-icon { font-size: 26px; margin-bottom: 4px; }
+  .challenge-name { font-size: 11px; font-weight: 700; margin-bottom: 4px; line-height: 1.3; }
+  .challenge-progress { font-size: 10px; color: #FFD700; font-weight: 700; }
+  .challenge-badge {
+    position: absolute; top: 8px; right: 8px;
+    font-size: 16px;
+  }
+  .challenge-sub { font-size: 9px; color: #aaa; margin-top: 2px; }
+
   .day-cell {
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.1);
@@ -511,6 +542,32 @@
     <button id="restBtn" onclick="declareRestToday()" style="width:100%;margin-top:10px;background:rgba(26,107,181,0.15);border:1px solid rgba(26,107,181,0.4);color:#8ab4ff;border-radius:8px;padding:8px;font-size:11px;font-family:inherit;cursor:pointer">😴 今日は休む（ペナルティなし）</button>
   </div>
 </div>
+
+<!-- SUMMER THEME & RULES & WEEKLY REVIEW (ボタンから確認するポップアップ形式) -->
+<div style="padding:0 12px 8px;display:flex;gap:8px">
+  <button onclick="showSummerTheme(true)" style="flex:1;background:rgba(255,215,0,0.1);border:1px solid var(--gold-dark);color:var(--gold);border-radius:10px;padding:10px;font-size:12px;font-family:inherit;cursor:pointer">🎯 この夏のテーマ</button>
+  <button onclick="showRules(true)" style="flex:1;background:rgba(255,215,0,0.1);border:1px solid var(--gold-dark);color:var(--gold);border-radius:10px;padding:10px;font-size:12px;font-family:inherit;cursor:pointer">📜 3つのやくそく</button>
+</div>
+<div style="padding:0 12px 16px">
+  <button onclick="openWeeklyReviewModal()" style="width:100%;background:rgba(74,140,63,0.1);border:1px solid rgba(74,140,63,0.4);color:#8aff8a;border-radius:10px;padding:10px;font-size:12px;font-family:inherit;cursor:pointer">📊 週間振り返りを見る（週末におすすめ）</button>
+  <div id="weeklyMemoPreview" style="margin-top:8px"></div>
+</div>
+<div id="packingListButtonArea" style="padding:0 12px 16px"></div>
+
+<!-- SUMMER CHALLENGE -->
+<div class="section-title" style="margin-top:16px">🌞 夏休みチャレンジ</div>
+<div style="padding:0 12px 8px;font-size:11px;color:#aaa;line-height:1.5">時間がある夏休みだからこそ挑戦できる特別メニュー！YouTubeやInstagramでやり方を調べながら、自分のペースで挑戦しよう。</div>
+<div class="challenge-grid" id="challengeGrid"></div>
+
+<!-- MEASUREMENTS -->
+<div class="section-title" style="margin-top:16px">📏 体力測定・からだの記録</div>
+<div style="padding:0 12px 8px;font-size:11px;color:#aaa;line-height:1.5">週1くらいのペースで記録して、成長を見える化しよう！</div>
+<div class="challenge-grid" id="measurementGrid"></div>
+<div style="margin:0 12px 16px;background:rgba(255,215,0,0.08);border:1px dashed rgba(255,215,0,0.4);border-radius:10px;padding:12px;font-size:11px;color:#FFD700;line-height:1.6">
+  💡 他にも測ってみたい記録があったらパパに教えてね！<br>
+  <span style="color:#ccc">例：スイングスピード、球速、50m走のタイム、遠投距離 など、光揮のアイデアも大歓迎！</span>
+</div>
+
 <div class="section-title">📅 SCHEDULE</div>
 <div class="week-tabs" id="weekTabs"></div>
 <div class="schedule-grid" id="scheduleGrid"></div>
@@ -532,8 +589,7 @@
 </div>
 
 <div class="game-footer">
-  光揮の夏トレーニング 2026 ⚾ 7/6 – 8/30 | KITASUNA LITTLE LEAGUE<br>
-  <button onclick="showRules(true)" style="margin-top:10px;background:rgba(255,215,0,0.1);border:1px solid var(--gold-dark);color:var(--gold);border-radius:20px;padding:8px 20px;font-size:12px;font-family:inherit;cursor:pointer">📜 トレーニングのルールを見る</button>
+  光揮の夏トレーニング 2026 ⚾ 7/6 – 8/30 | KITASUNA LITTLE LEAGUE
 </div>
 
 <!-- RULES OVERLAY -->
@@ -560,6 +616,41 @@
       <div style="font-size:11px;color:#ccc;margin-top:4px;line-height:1.5">続ければ毎日 +1% 成長！でもサボると −1%…。<br>小さな積み重ねが大きな差になるよ。</div>
     </div>
     <button class="btn-do" onclick="closeRules()">✊ よし、がんばる！</button>
+  </div>
+</div>
+
+<!-- SUMMER THEME OVERLAY -->
+<div class="modal-overlay" id="summerThemeOverlay">
+  <div class="modal-sheet" style="max-width:440px;max-height:85vh;overflow-y:auto">
+    <div style="text-align:center;font-size:28px;margin-bottom:6px">🎯</div>
+    <div class="modal-title" style="text-align:center;color:var(--gold)">この夏のテーマ</div>
+    <div style="text-align:center;font-size:11px;color:#aaa;margin-bottom:16px">パパと光揮で話して決めた、この夏頑張りたいこと。優先順位①→④の順に取り組もう！</div>
+    <div id="summerThemeBoard"></div>
+    <button class="btn-do" onclick="closeSummerTheme()" style="margin-top:16px">✊ よし、がんばる！</button>
+  </div>
+</div>
+
+<!-- WEEKLY REVIEW OVERLAY -->
+<div class="modal-overlay" id="weeklyReviewOverlay">
+  <div class="modal-sheet" style="max-width:440px;max-height:85vh;overflow-y:auto">
+    <div style="text-align:center;font-size:28px;margin-bottom:6px">📊</div>
+    <div class="modal-title" style="text-align:center;color:var(--gold)">週間トレーニング振り返り</div>
+    <div style="text-align:center;font-size:11px;color:#aaa;margin-bottom:16px">直近7日間の実施バランスを見える化。親子で話し合ったことをメモに残そう！</div>
+    <div id="weeklyReviewChart"></div>
+    <button onclick="openWeeklyMemoModal()" style="width:100%;margin-top:12px;background:rgba(74,140,63,0.15);border:1px solid rgba(74,140,63,0.4);color:#8aff8a;border-radius:10px;padding:10px;font-size:12px;font-family:inherit;cursor:pointer">📝 振り返りメモを書く</button>
+    <div id="weeklyMemoList" style="margin-top:10px"></div>
+    <button class="btn-close" onclick="closeWeeklyReviewModal()" style="margin-top:10px">閉じる</button>
+  </div>
+</div>
+
+<!-- TRAVEL PACKING LIST OVERLAY -->
+<div class="modal-overlay" id="packingListOverlay">
+  <div class="modal-sheet" style="max-width:440px">
+    <div style="text-align:center;font-size:28px;margin-bottom:6px">🧳</div>
+    <div class="modal-title" style="text-align:center;color:var(--gold)" id="packingListTitle">持ち物リスト</div>
+    <div style="text-align:center;font-size:11px;color:#aaa;margin-bottom:16px">忘れ物がないかチェックしよう！</div>
+    <div id="packingListItems"></div>
+    <button class="btn-do" onclick="closePackingList()" style="margin-top:16px">✊ 準備OK！</button>
   </div>
 </div>
 
@@ -614,6 +705,11 @@ let state = {
   lastContinuousDay: null, // 最後に継続系トレを実施した日 key
   rulesSeen: false,        // ルール説明を見たか
   restDeclared: {},        // key(日付) -> true : その場で「今日は休む」を宣言した日
+  challenges: {},          // challengeId -> { records:[{date,value,note}], achieved:false }
+  measurements: {},        // measurementId -> { records:[{date,value}] }
+  weeklyMemos: [],         // [{date, text}] 親子で話し合った振り返りメモ
+  themeSeen: false,        // 「この夏のテーマ」を見たか
+  packingListSeenDate: null, // 旅先持ち物リストのポップアップを最後に閉じた日付（この日は再表示しない）
 };
 
 // ===== クラウド同期（Google スプレッドシート経由） =====
@@ -682,6 +778,10 @@ function renderAll(opts){
   if (opts.checkDecay) checkGrowthDecay();
   renderStatus();
   renderGrowth();
+  renderChallenges();
+  renderMeasurements();
+  renderWeeklyMemoPreview();
+  renderPackingListButton();
   renderWeekTabs();
   renderSchedule();
   renderCatTabs();
@@ -791,12 +891,12 @@ function mkLesson(id, label, isPhysical, activities){
 
 // 運動系レッスンの「実施内容」選択肢プリセット
 const ACTIVITY_PRESETS = {
-  kawakami: ['素振り','トスバッティング','シャトル打ち','守備（ゴロ捌き）','守備（送球）','ピッチング'],
+  kawakami: ['素振り','トスバッティング','シャトル打ち','守備（ゴロ捌き）','守備（送球）','ピッチング','①スイング確認（軸回転・左膝締める）','②守備（目線一定・回り込み）','③変化球（カーブ・チェンジアップ）'],
   kyasuku:  ['バランス＆リズム（コーディネーション）','切り返し＆方向転換（アジリティ）','ダッシュ＆トップスピード（スピード）','スタートダッシュ（クイックネス）','測定会'],
-  ryunosuke:['素振り','トスバッティング','シャトル打ち'],
+  ryunosuke:['素振り','トスバッティング','シャトル打ち','①スイング確認（軸回転・左膝締める）'],
   swimming: ['個人メドレー','クロール','背泳ぎ','平泳ぎ','バタフライ','基礎練習'],
-  seki:     ['バッティング','投球','フィジカル','守備','リカバリー','キャッチボール','ペッパー'],
-  team:     ['試合出場','バッティング','守備','ピッチング','フィジカル','ダッシュ','ランニング','ベンチ・応援'],
+  seki:     ['バッティング','投球','フィジカル','守備','リカバリー','キャッチボール','ペッパー','①スイング確認（軸回転・左膝締める）','②守備（目線一定・回り込み）','③変化球（カーブ・チェンジアップ）','④盗塁スタート練習'],
+  team:     ['試合出場','バッティング','守備','ピッチング','フィジカル','ダッシュ','ランニング','ベンチ・応援','④盗塁スタート練習'],
 };
 
 // 各「実施内容」がどのステータスに効くかのマッピング（1個につき+1〜2ポイント目安）
@@ -819,6 +919,12 @@ const ACTIVITY_STAT_MAP = {
   'キャッチボール': {thr:2}, 'ペッパー': {bat:1,thr:1,men:1},
   // チーム練習・試合
   '試合出場': {bat:1,thr:1,run:1,stam:1,men:2}, 'ダッシュ': {run:2}, 'ランニング': {stam:2}, 'ベンチ・応援': {men:2},
+
+  // ===== この夏のテーマ に沿った意識ポイント項目（①〜④は優先順位に対応） =====
+  '①スイング確認（軸回転・左膝締める）': {bat:3,men:1},
+  '②守備（目線一定・回り込み）': {thr:2,run:1},
+  '③変化球（カーブ・チェンジアップ）': {thr:3},
+  '④盗塁スタート練習': {run:3},
 
   // ===== 廃止済み項目（過去に記録済みのデータとの整合性維持のため残置。選択肢には表示されない） =====
   'ティーバッティング': {bat:2},
@@ -945,6 +1051,97 @@ const LOAD_STYLE = {
   low: { color:'#1a6bb5', label:'🔵 軽め',   border:'rgba(26,107,181,0.4)' },
 };
 
+// ===== 夏休みチャレンジ =====
+// ===== 旅先持ち物リスト（日付ごとに設定。その日だけ自動でポップアップ表示） =====
+const TRAVEL_PACKING_LISTS = {
+  '2026-07-12': {
+    title: '旅行に持っていくもの',
+    items: ['バット', 'グローブ', 'ボール', 'ゴムチューブ', 'プライオボール', 'シャドウ用タオル', 'マッサージ器', 'マッサージボール', 'フォームローラー', 'シャトル', 'サンドボール'],
+  },
+};
+
+// ===== この夏のテーマ（パパと光揮で話し合って決めた内容。優先順位は①→④の順） =====
+// コーチのアドバイスを踏まえて内容を見直す場合は、このリストを編集するだけでOK。
+const SUMMER_THEMES = [
+  { priority: 1, icon: '🏏', title: '強いスイングを作る',
+    points: [
+      '下半身を安定させて軸の回転で振る',
+      '踏み込む時に左膝が開かないようにする',
+      'ボールの下内側からバットを入れる感覚を磨く',
+      '追い込まれるまでは大胆に、追い込まれたらコンパクトに',
+    ] },
+  { priority: 2, icon: '🧤', title: '守備の基本を徹底する',
+    points: [
+      '目線の高さを捕球から送球まで保つ',
+      '内野では投げる方向へステップして強い送球につなげる',
+      '1歩目の速さと打球への入り方（回り込み）',
+      'メジャーの練習で教わった内容をこまめに復習して定着させる',
+    ] },
+  { priority: 3, icon: '⚾', title: 'ピッチングの引き出しを増やす',
+    points: [
+      '変化球（カーブ・チェンジアップ）の練習',
+      '余裕があればクイックや牽制にも挑戦',
+    ] },
+  { priority: 4, icon: '🏃', title: '走塁（盗塁対応）',
+    points: [
+      'メジャーの盗塁ありの試合に備えて、盗塁スタートの練習',
+    ] },
+];
+
+const SUMMER_THEME_FOUNDATION = {
+  title: '土台となるもの',
+  points: [
+    '身体の使い方（下半身と上半身の連動）とそれを支える体幹',
+    'スイングや投球の爆発力を生み出すダッシュ・ジャンプ系トレーニング',
+    '守備・走塁の切り返しで使う身体の使い方',
+    '負けない・諦めないメンタル。やる時は全力でやる気持ち',
+  ]
+};
+
+// recordType:
+//   'count'    = 回数
+//   'angle'    = 角度(度)
+//   'seconds'  = 秒数
+//   'stage'    = 複数ステージを順に進める（各ステージごとに数値記録 or 達成記録）
+//   'study'    = 学習ログ（見た内容＋学んだことを必須メモ）
+//   'progress' = 行動記録から始める段階制（調べた→挑戦した→できた！→回数記録）
+const CHALLENGES = [
+  { id:'bridge', icon:'🌉', name:'ブリッジ（山本由伸選手風）',
+    desc:'いきなり回転ブリッジは難しいので、段階を踏んでチャレンジ！YouTubeやInstagramで「山本由伸 ブリッジ」「野球選手 ブリッジ 柔軟性」などで検索して、フォームやコツを研究してみよう📱',
+    recordType:'stage',
+    stages:[
+      { id:'normal', label:'①普通のブリッジ', unit:'秒キープ', hint:'まずは普通のブリッジで背中を慣らそう。YouTubeで正しいフォームを確認してから挑戦するとケガ防止にもなるよ！' },
+      { id:'wall-rotate', label:'②壁を使った回転ブリッジ', unit:'cm（壁から手までの距離）', hint:'壁を使って回転しながら、徐々に手を床に近づけていこう。数値は小さくなるほど上達！「壁ブリッジ やり方」で調べると分かりやすい動画が見つかるよ。', lowerIsBetter:true },
+      { id:'full-rotate', label:'③完全回転ブリッジ（由伸選手風）', unit:'できたら1、まだなら0', hint:'壁なしで回転できたら記録！焦らず②のステージでしっかり距離を縮めてから挑戦しよう。' },
+    ] },
+  { id:'split', icon:'🤸', name:'開脚（プロ野球選手平均160°）',
+    desc:'プロ野球選手の平均開脚角度は160°と言われています。少しずつ角度を伸ばしていこう！YouTubeやInstagramで「開脚 ストレッチ 方法」「股関節 柔軟性 トレーニング」などを調べて、安全なやり方を研究してみよう📱',
+    recordType:'angle', unit:'度', target:160 },
+  { id:'baseball-study', icon:'📺', name:'野球を勉強しよう（DVD・YouTube等）',
+    desc:'DVDでもYouTubeでもOK！観た内容と学んだことを必ずメモしよう。',
+    recordType:'study' },
+  { id:'kip-up', icon:'🔄', name:'逆上がり',
+    desc:'まだやったことがなくてもOK！「調べる→挑戦する→できた！」の順で進めよう。',
+    recordType:'progress',
+    progressSteps:['調べてみた（YouTube等）','挑戦してみた','できた！'] },
+  { id:'jump-rope', icon:'🪢', name:'縄跳び（前・後・二重跳び）',
+    desc:'前回し・後ろ回し・二重跳び、それぞれ挑戦してみよう！',
+    recordType:'progress',
+    progressSteps:['調べてみた（YouTube等）','挑戦してみた','できた！'] },
+  { id:'handstand', icon:'🤾', name:'倒立（壁倒立でOK）',
+    desc:'壁を使った倒立にチャレンジ。まずは調べて、挑戦してみよう！',
+    recordType:'progress',
+    progressSteps:['調べてみた（YouTube等）','挑戦してみた','できた！'] },
+];
+
+// ===== 体力測定・身体データ =====
+const MEASUREMENTS = [
+  { id:'broad-jump', icon:'🦘', name:'立ち幅跳び', unit:'cm', freq:'週1推奨', goalEnabled:true },
+  { id:'pull-up', icon:'💪', name:'懸垂（連続回数）', unit:'回', freq:'週1推奨', goalEnabled:true },
+  { id:'weight', icon:'⚖️', name:'体重', unit:'kg', freq:'毎朝推奨', goalEnabled:false },
+  { id:'height', icon:'📏', name:'身長', unit:'cm', freq:'週1推奨', goalEnabled:false },
+];
+
 // ===== TRAINING DATA =====
 const trainings = [
   // ── バッティング ──
@@ -956,7 +1153,7 @@ const trainings = [
     xp:18, time:'25分', cat:'batting', tags:['batting','mental'], statBonus:{bat:3,men:1}, highLoad:false, travelOk:false },
   { id:'tube-swing', icon:'🟡', name:'ゴムチューブ素振り',
     desc:'チューブを固定してスイング軌道に負荷をかけた素振り×30本。スイングスピードと手首・前腕の強化に直結する。',
-    xp:14, time:'15分', cat:'batting', tags:['batting','stamina'], statBonus:{bat:3,stam:1}, highLoad:false, travelOk:false },
+    xp:14, time:'15分', cat:'batting', tags:['batting','stamina'], statBonus:{bat:3,stam:1}, highLoad:false, travelOk:true },
 
   // ── フィジカル・瞬発力 ──
   { id:'balance-dome', icon:'⚡', name:'バランスドームジャンプ',
@@ -993,7 +1190,7 @@ const trainings = [
     xp:14, time:'20分', cat:'throwing', tags:['throwing','mental'], statBonus:{thr:3,men:1}, highLoad:false, travelOk:true },
   { id:'plyo-ball', icon:'🎯', name:'プライオボール（壁当て）',
     desc:'重さの違うプライオボールを壁に向かって投げる。腕のしなり・指先の感覚・肩甲骨の可動域を高める。軽→重の順で。',
-    xp:18, time:'20分', cat:'throwing', tags:['throwing'], statBonus:{thr:4}, highLoad:true, travelOk:false },
+    xp:18, time:'20分', cat:'throwing', tags:['throwing'], statBonus:{thr:4}, highLoad:true, travelOk:true },
   { id:'tube-shoulder', icon:'🔴', name:'ゴムチューブ肩ローテーター',
     desc:'チューブで肩の内旋・外旋を各15回×3セット。投球時のインナーマッスルを鍛えてケガを予防する必須ケアメニュー。',
     xp:12, time:'15分', cat:'throwing', tags:['throwing','recovery'], statBonus:{thr:2,stam:2}, highLoad:false, travelOk:false },
@@ -1012,7 +1209,7 @@ const trainings = [
     xp:10, time:'15分', cat:'recovery', tags:['recovery'], statBonus:{stam:3}, highLoad:false, travelOk:true },
   { id:'massage', icon:'💆', name:'マッサージ・ケア',
     desc:'フォームローラーやテニスボールを使って筋膜リリース。ふくらはぎ・大腿・肩まわりを重点的にほぐす。',
-    xp:10, time:'15分', cat:'recovery', tags:['recovery'], statBonus:{stam:2,men:1}, highLoad:false, travelOk:false },
+    xp:10, time:'15分', cat:'recovery', tags:['recovery'], statBonus:{stam:2,men:1}, highLoad:false, travelOk:true },
   { id:'microcurrent', icon:'⚡', name:'マイクロカレント治療',
     desc:'微弱電流で筋肉の修復を促進。疲れが溜まったときや練習量が多い週に活用。回復速度が上がり翌日の動きが変わる。',
     xp:12, time:'20分', cat:'recovery', tags:['recovery'], statBonus:{stam:4}, highLoad:false, travelOk:false },
@@ -1687,6 +1884,648 @@ function openTrainingModal(t) {
 
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
 
+// ===== 夏休みチャレンジ =====
+// ===== この夏のテーマ表示 =====
+function renderSummerTheme(){
+  const el = document.getElementById('summerThemeBoard');
+  if (!el) return;
+
+  const themeCardsHTML = SUMMER_THEMES.map(t=>`
+    <div style="background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.3);border-radius:12px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:var(--gold);color:var(--navy);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0">${t.priority}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--gold)">${t.icon} ${t.title}</div>
+      </div>
+      <ul style="margin:0;padding-left:18px">
+        ${t.points.map(p=>`<li style="font-size:11px;color:#ddd;line-height:1.6;margin-bottom:2px">${p}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('');
+
+  const foundationHTML = `
+    <div style="background:rgba(74,140,63,0.08);border:1px solid rgba(74,140,63,0.3);border-radius:12px;padding:12px">
+      <div style="font-size:13px;font-weight:700;color:#8aff8a;margin-bottom:8px">🌱 ${SUMMER_THEME_FOUNDATION.title}</div>
+      <ul style="margin:0;padding-left:18px">
+        ${SUMMER_THEME_FOUNDATION.points.map(p=>`<li style="font-size:11px;color:#ddd;line-height:1.6;margin-bottom:2px">${p}</li>`).join('')}
+      </ul>
+    </div>
+  `;
+
+  el.innerHTML = themeCardsHTML + foundationHTML;
+}
+
+function renderChallenges(){
+  const grid = document.getElementById('challengeGrid');
+  if(!grid) return;
+  grid.innerHTML = '';
+
+  CHALLENGES.forEach(c=>{
+    const data = state.challenges[c.id] || { records: [], achieved: false, stageIndex: 0, progressStep: 0 };
+    const card = document.createElement('div');
+    let isAchieved = false;
+    let progressText = 'まだ記録なし';
+
+    if (c.recordType === 'angle') {
+      const latest = data.records.length ? data.records[data.records.length-1] : null;
+      isAchieved = c.target && latest && latest.value >= c.target;
+      if (latest) progressText = `最新: ${latest.value}°${c.target ? ' / 目標'+c.target+'°' : ''}`;
+    } else if (c.recordType === 'stage') {
+      const stageIdx = data.stageIndex || 0;
+      isAchieved = stageIdx >= c.stages.length;
+      progressText = isAchieved ? '🎉 全ステージ達成！' : `現在: ${c.stages[stageIdx].label}`;
+    } else if (c.recordType === 'study') {
+      progressText = data.records.length ? `これまで${data.records.length}回学習済み` : 'まだ記録なし';
+    } else if (c.recordType === 'progress') {
+      const step = data.progressStep || 0;
+      isAchieved = step >= c.progressSteps.length;
+      progressText = isAchieved ? '🎉 できるようになった！' : `現在: ${c.progressSteps[step]}`;
+    } else {
+      const latest = data.records.length ? data.records[data.records.length-1] : null;
+      if (latest) progressText = `最新: ${latest.value}${c.unit}（${data.records.length}回記録）`;
+    }
+
+    card.className = 'challenge-card' + (isAchieved ? ' achieved' : '');
+    card.innerHTML = `
+      <div class="challenge-badge">${isAchieved ? '🏆' : ''}</div>
+      <div class="challenge-icon">${c.icon}</div>
+      <div class="challenge-name">${c.name}</div>
+      <div class="challenge-progress">${progressText}</div>
+    `;
+    card.onclick = () => openChallengeModal(c);
+    grid.appendChild(card);
+  });
+}
+
+function getChallengeData(id){
+  if (!state.challenges[id]) state.challenges[id] = { records: [], achieved: false, stageIndex: 0, progressStep: 0 };
+  return state.challenges[id];
+}
+
+function openChallengeModal(c){
+  const data = getChallengeData(c.id);
+  document.getElementById('modalTitle').textContent = `${c.icon} ${c.name}`;
+  document.getElementById('modalDesc').textContent = c.desc;
+
+  if (c.recordType === 'stage') return renderStageModal(c, data);
+  if (c.recordType === 'study') return renderStudyModal(c, data);
+  if (c.recordType === 'progress') return renderProgressModal(c, data);
+  return renderNumberModal(c, data);
+}
+
+// ふつうの数値記録（角度など）
+function renderNumberModal(c, data){
+  const historyHTML = data.records.length
+    ? data.records.slice(-5).reverse().map(r=>{
+        const d = new Date(r.date);
+        return `<div style="display:flex;justify-content:space-between;font-size:11px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="color:#aaa">${d.getMonth()+1}/${d.getDate()}</span>
+          <span style="font-weight:700;color:var(--gold)">${r.value}${c.unit}</span>
+          <span style="color:#888;font-size:10px">${r.note||''}</span>
+        </div>`;
+      }).join('')
+    : '<div style="text-align:center;color:#888;font-size:11px;padding:10px">まだ記録がありません</div>';
+
+  document.getElementById('modalStats').innerHTML = `
+    <div style="width:100%">
+      <div style="font-size:11px;color:#FFD700;font-weight:700;margin-bottom:8px">📊 これまでの記録</div>
+      <div style="max-height:150px;overflow-y:auto;margin-bottom:12px">${historyHTML}</div>
+      <div style="border-top:1px solid rgba(255,255,255,0.15);padding-top:10px">
+        <label style="font-size:11px;color:#aaa;display:block;margin-bottom:6px">今日の記録（${c.unit}）</label>
+        <input type="number" id="challengeValueInput" style="width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,215,0,0.3);color:#fff;padding:10px;border-radius:8px;font-size:14px;margin-bottom:8px;font-family:inherit">
+        <label style="font-size:11px;color:#aaa;display:block;margin-bottom:6px">メモ（任意）</label>
+        <input type="text" id="challengeNoteInput" placeholder="調べた方法・気づいたことなど" style="width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,215,0,0.3);color:#fff;padding:10px;border-radius:8px;font-size:13px;font-family:inherit">
+      </div>
+    </div>
+  `;
+  document.getElementById('modalDoBtn').style.display = 'block';
+  document.getElementById('modalDoBtn').textContent = '✅ 記録する！';
+  document.getElementById('modalDoBtn').onclick = () => saveNumberRecord(c);
+  const ca = document.getElementById('modalCustomBtn');
+  if(ca) ca.innerHTML = '';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function saveNumberRecord(c){
+  const value = parseFloat(document.getElementById('challengeValueInput').value);
+  if (isNaN(value) || value < 0) { alert('数値を入力してね！'); return; }
+  const note = document.getElementById('challengeNoteInput').value.trim();
+  const data = getChallengeData(c.id);
+  data.records.push({ date: todayDateKey(), value, note });
+
+  const wasAchieved = data.achieved;
+  if (c.target && value >= c.target && !wasAchieved) {
+    data.achieved = true;
+    save(); renderChallenges(); closeModal();
+    setTimeout(()=>{
+      document.getElementById('luSubText').textContent = `${c.name} 目標達成！すごい！`;
+      document.getElementById('levelUpBanner').classList.add('show');
+    }, 300);
+    return;
+  }
+  addXP(10, {men:1}, null);
+  save(); renderChallenges(); closeModal();
+}
+
+// ステージ制（ブリッジ）
+function renderStageModal(c, data){
+  const stageIdx = Math.min(data.stageIndex||0, c.stages.length-1);
+  const stage = c.stages[stageIdx];
+  const isAllDone = (data.stageIndex||0) >= c.stages.length;
+
+  if (isAllDone) {
+    document.getElementById('modalStats').innerHTML = `
+      <div style="text-align:center;padding:20px">
+        <div style="font-size:40px;margin-bottom:10px">🏆</div>
+        <div style="font-size:14px;font-weight:700;color:var(--gold)">全ステージ達成済み！</div>
+        <div style="font-size:11px;color:#aaa;margin-top:6px">由伸選手みたいなブリッジ、完璧だね！</div>
+      </div>
+    `;
+    document.getElementById('modalDoBtn').style.display = 'none';
+    const ca = document.getElementById('modalCustomBtn');
+    if(ca) ca.innerHTML = '';
+    document.getElementById('modalOverlay').classList.add('show');
+    return;
+  }
+
+  const stageRecords = data.records.filter(r=>r.stageId===stage.id);
+  const historyHTML = stageRecords.length
+    ? stageRecords.slice(-5).reverse().map(r=>{
+        const d = new Date(r.date);
+        return `<div style="display:flex;justify-content:space-between;font-size:11px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="color:#aaa">${d.getMonth()+1}/${d.getDate()}</span>
+          <span style="font-weight:700;color:var(--gold)">${r.value}${stage.unit}</span>
+        </div>`;
+      }).join('')
+    : '<div style="text-align:center;color:#888;font-size:11px;padding:10px">まだ記録がありません</div>';
+
+  document.getElementById('modalStats').innerHTML = `
+    <div style="width:100%">
+      <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px">${stage.label}</div>
+      <div style="font-size:11px;color:#ccc;margin-bottom:10px;line-height:1.5">${stage.hint}</div>
+      <div style="font-size:11px;color:#FFD700;font-weight:700;margin-bottom:8px">📊 このステージの記録</div>
+      <div style="max-height:120px;overflow-y:auto;margin-bottom:12px">${historyHTML}</div>
+      <div style="border-top:1px solid rgba(255,255,255,0.15);padding-top:10px">
+        <label style="font-size:11px;color:#aaa;display:block;margin-bottom:6px">今日の記録（${stage.unit}）</label>
+        <input type="number" id="challengeValueInput" style="width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,215,0,0.3);color:#fff;padding:10px;border-radius:8px;font-size:14px;font-family:inherit">
+      </div>
+    </div>
+  `;
+  document.getElementById('modalDoBtn').style.display = 'block';
+  document.getElementById('modalDoBtn').textContent = '✅ 記録する！';
+  document.getElementById('modalDoBtn').onclick = () => saveStageRecord(c, stage, stageIdx);
+  const ca = document.getElementById('modalCustomBtn');
+  if(ca){
+    ca.innerHTML = stageIdx < c.stages.length ? `<button class="btn-close" onclick="advanceStage('${c.id}','${stage.id}')" style="margin-top:8px">➡️ 次のステージに進む</button>` : '';
+  }
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function saveStageRecord(c, stage, stageIdx){
+  const value = parseFloat(document.getElementById('challengeValueInput').value);
+  if (isNaN(value) || value < 0) { alert('数値を入力してね！'); return; }
+  const data = getChallengeData(c.id);
+  data.records.push({ date: todayDateKey(), value, stageId: stage.id });
+  addXP(10, {men:1}, null);
+  save(); renderChallenges(); closeModal();
+}
+
+function advanceStage(challengeId, currentStageId){
+  const data = getChallengeData(challengeId);
+  data.stageIndex = (data.stageIndex||0) + 1;
+  save(); renderChallenges(); closeModal();
+  const c = CHALLENGES.find(x=>x.id===challengeId);
+  if ((data.stageIndex||0) >= c.stages.length) {
+    setTimeout(()=>{
+      document.getElementById('luSubText').textContent = `${c.name} 全ステージクリア！すごい！`;
+      document.getElementById('levelUpBanner').classList.add('show');
+    }, 300);
+  }
+}
+
+// 学習ログ（見た内容＋学んだこと 必須）
+function renderStudyModal(c, data){
+  const historyHTML = data.records.length
+    ? data.records.slice(-5).reverse().map(r=>{
+        const d = new Date(r.date);
+        return `<div style="font-size:11px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <div style="color:#aaa;margin-bottom:2px">${d.getMonth()+1}/${d.getDate()} — <span style="color:var(--gold);font-weight:700">${r.watched}</span></div>
+          <div style="color:#ccc">💡 ${r.learned}</div>
+        </div>`;
+      }).join('')
+    : '<div style="text-align:center;color:#888;font-size:11px;padding:10px">まだ記録がありません</div>';
+
+  document.getElementById('modalStats').innerHTML = `
+    <div style="width:100%">
+      <div style="font-size:11px;color:#FFD700;font-weight:700;margin-bottom:8px">📚 これまでの学習ログ</div>
+      <div style="max-height:150px;overflow-y:auto;margin-bottom:12px">${historyHTML}</div>
+      <div style="border-top:1px solid rgba(255,255,255,0.15);padding-top:10px">
+        <label style="font-size:11px;color:#aaa;display:block;margin-bottom:6px">📺 何を見た？（必須）</label>
+        <input type="text" id="studyWatchedInput" placeholder="例: 大谷選手のバッティングDVD" style="width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,215,0,0.3);color:#fff;padding:10px;border-radius:8px;font-size:13px;margin-bottom:8px;font-family:inherit">
+        <label style="font-size:11px;color:#aaa;display:block;margin-bottom:6px">💡 何を学んだ？（必須）</label>
+        <input type="text" id="studyLearnedInput" placeholder="例: 軸足の使い方を意識していた" style="width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,215,0,0.3);color:#fff;padding:10px;border-radius:8px;font-size:13px;font-family:inherit">
+      </div>
+    </div>
+  `;
+  document.getElementById('modalDoBtn').style.display = 'block';
+  document.getElementById('modalDoBtn').textContent = '✅ 記録する！';
+  document.getElementById('modalDoBtn').onclick = () => saveStudyRecord(c);
+  const ca = document.getElementById('modalCustomBtn');
+  if(ca) ca.innerHTML = '';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function saveStudyRecord(c){
+  const watched = document.getElementById('studyWatchedInput').value.trim();
+  const learned = document.getElementById('studyLearnedInput').value.trim();
+  if (!watched || !learned) { alert('「見た内容」と「学んだこと」の両方を入力してね！'); return; }
+  const data = getChallengeData(c.id);
+  data.records.push({ date: todayDateKey(), watched, learned });
+  addXP(15, {men:2}, null);
+  save(); renderChallenges(); closeModal();
+}
+
+// 段階制（逆上がり・縄跳び・倒立）：調べた→挑戦した→できた！
+function renderProgressModal(c, data){
+  const step = data.progressStep || 0;
+  const isAllDone = step >= c.progressSteps.length;
+
+  if (isAllDone) {
+    document.getElementById('modalStats').innerHTML = `
+      <div style="text-align:center;padding:20px">
+        <div style="font-size:40px;margin-bottom:10px">🎉</div>
+        <div style="font-size:14px;font-weight:700;color:var(--gold)">できるようになったね！</div>
+      </div>
+    `;
+    document.getElementById('modalDoBtn').style.display = 'none';
+    const ca = document.getElementById('modalCustomBtn');
+    if(ca) ca.innerHTML = '';
+    document.getElementById('modalOverlay').classList.add('show');
+    return;
+  }
+
+  const stepLabel = c.progressSteps[step];
+  document.getElementById('modalStats').innerHTML = `
+    <div style="width:100%;text-align:center">
+      <div style="font-size:11px;color:#aaa;margin-bottom:10px">今のステップ</div>
+      <div style="font-size:16px;font-weight:700;color:var(--gold);margin-bottom:16px">${stepLabel}</div>
+      <div style="display:flex;justify-content:center;gap:6px;margin-bottom:16px">
+        ${c.progressSteps.map((s,i)=>`<div style="width:10px;height:10px;border-radius:50%;background:${i<=step?'var(--gold)':'rgba(255,255,255,0.2)'}"></div>`).join('')}
+      </div>
+    </div>
+  `;
+  document.getElementById('modalDoBtn').style.display = 'block';
+  document.getElementById('modalDoBtn').textContent = `✅ 「${stepLabel}」を達成！`;
+  document.getElementById('modalDoBtn').onclick = () => advanceProgress(c.id);
+  const ca = document.getElementById('modalCustomBtn');
+  if(ca) ca.innerHTML = '';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function advanceProgress(challengeId){
+  const data = getChallengeData(challengeId);
+  data.progressStep = (data.progressStep||0) + 1;
+  data.records.push({ date: todayDateKey(), step: data.progressStep });
+  addXP(10, {men:1}, null);
+  const c = CHALLENGES.find(x=>x.id===challengeId);
+  save(); renderChallenges(); closeModal();
+  if ((data.progressStep||0) >= c.progressSteps.length) {
+    setTimeout(()=>{
+      document.getElementById('luSubText').textContent = `${c.name} できるようになった！すごい！`;
+      document.getElementById('levelUpBanner').classList.add('show');
+    }, 300);
+  }
+}
+
+// ===== 体力測定・身体データ =====
+function getMeasurementData(id){
+  if (!state.measurements[id]) state.measurements[id] = { records: [], goal: null };
+  return state.measurements[id];
+}
+
+function renderMeasurements(){
+  const grid = document.getElementById('measurementGrid');
+  if(!grid) return;
+  grid.innerHTML = '';
+
+  MEASUREMENTS.forEach(m=>{
+    const data = getMeasurementData(m.id);
+    const latest = data.records.length ? data.records[data.records.length-1] : null;
+    const prev = data.records.length > 1 ? data.records[data.records.length-2] : null;
+
+    let progressText = 'まだ記録なし';
+    if (latest) {
+      progressText = `最新: ${latest.value}${m.unit}`;
+      if (prev) {
+        const diff = Math.round((latest.value - prev.value)*10)/10;
+        if (diff !== 0) progressText += ` (${diff>0?'+':''}${diff})`;
+      }
+    }
+    let goalText = '';
+    if (m.goalEnabled && data.goal != null) {
+      goalText = `🎯目標: ${data.goal}${m.unit}`;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'challenge-card';
+    card.innerHTML = `
+      <div class="challenge-icon">${m.icon}</div>
+      <div class="challenge-name">${m.name}</div>
+      <div class="challenge-progress">${progressText}</div>
+      ${goalText ? `<div class="challenge-sub" style="color:var(--gold)">${goalText}</div>` : `<div class="challenge-sub">${m.freq}</div>`}
+    `;
+    card.onclick = () => openMeasurementModal(m);
+    grid.appendChild(card);
+  });
+}
+
+function openMeasurementModal(m){
+  const data = getMeasurementData(m.id);
+  document.getElementById('modalTitle').textContent = `${m.icon} ${m.name}`;
+  document.getElementById('modalDesc').textContent = `${m.freq}で記録してみよう。継続すると成長が数字で見えるよ！`;
+
+  const historyHTML = data.records.length
+    ? data.records.slice(-8).reverse().map(r=>{
+        const d = new Date(r.date);
+        return `<div style="display:flex;justify-content:space-between;font-size:11px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="color:#aaa">${d.getMonth()+1}/${d.getDate()}</span>
+          <span style="font-weight:700;color:var(--gold)">${r.value}${m.unit}</span>
+        </div>`;
+      }).join('')
+    : '<div style="text-align:center;color:#888;font-size:11px;padding:10px">まだ記録がありません</div>';
+
+  // 目標設定エリア（goalEnabledな項目のみ）
+  let goalAreaHTML = '';
+  if (m.goalEnabled) {
+    if (data.goal != null) {
+      goalAreaHTML = `
+        <div style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:8px;padding:10px;margin-bottom:12px">
+          <div style="font-size:12px;color:var(--gold);font-weight:700">🎯 目標: ${data.goal}${m.unit}</div>
+        </div>
+      `;
+    } else {
+      const hasRecord = data.records.length > 0;
+      goalAreaHTML = hasRecord ? `
+        <div style="background:rgba(255,255,255,0.05);border:1px dashed rgba(255,215,0,0.3);border-radius:8px;padding:10px;margin-bottom:12px">
+          <div style="font-size:11px;color:#aaa;margin-bottom:6px">🎯 次の目標を決めてみよう！</div>
+          <div style="font-size:10px;color:#e07b00;margin-bottom:8px;line-height:1.5">⚠️ いきなり高い目標を立てすぎないようにね。今の記録から少しずつ伸ばすのが上達の近道だよ。</div>
+          <div style="display:flex;gap:6px">
+            <input type="number" step="0.1" id="measurementGoalInput" placeholder="目標値" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,215,0,0.3);color:#fff;padding:8px;border-radius:8px;font-size:13px;font-family:inherit">
+            <button onclick="setMeasurementGoal('${m.id}')" style="background:rgba(255,215,0,0.2);border:1px solid var(--gold-dark);color:var(--gold);border-radius:8px;padding:8px 14px;font-size:12px;font-family:inherit;cursor:pointer">設定</button>
+          </div>
+        </div>
+      ` : `
+        <div style="background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);border-radius:8px;padding:10px;margin-bottom:12px;font-size:10px;color:#888">
+          まずは1回記録してみよう！記録後に目標を設定できるようになるよ。
+        </div>
+      `;
+    }
+  }
+
+  document.getElementById('modalStats').innerHTML = `
+    <div style="width:100%">
+      ${goalAreaHTML}
+      <div style="font-size:11px;color:#FFD700;font-weight:700;margin-bottom:8px">📊 これまでの記録</div>
+      <div style="max-height:180px;overflow-y:auto;margin-bottom:12px">${historyHTML}</div>
+      <div style="border-top:1px solid rgba(255,255,255,0.15);padding-top:10px">
+        <label style="font-size:11px;color:#aaa;display:block;margin-bottom:6px">今日の記録（${m.unit}）</label>
+        <input type="number" step="0.1" id="measurementValueInput" style="width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,215,0,0.3);color:#fff;padding:10px;border-radius:8px;font-size:14px;font-family:inherit">
+      </div>
+    </div>
+  `;
+  document.getElementById('modalDoBtn').style.display = 'block';
+  document.getElementById('modalDoBtn').textContent = '✅ 記録する！';
+  document.getElementById('modalDoBtn').onclick = () => saveMeasurementRecord(m);
+  const ca = document.getElementById('modalCustomBtn');
+  if(ca) ca.innerHTML = '';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function setMeasurementGoal(id){
+  const value = parseFloat(document.getElementById('measurementGoalInput').value);
+  if (isNaN(value) || value <= 0) { alert('目標の数値を入力してね！'); return; }
+  const data = getMeasurementData(id);
+  data.goal = value;
+  save(); renderMeasurements(); closeModal();
+}
+
+function saveMeasurementRecord(m){
+  const value = parseFloat(document.getElementById('measurementValueInput').value);
+  if (isNaN(value) || value < 0) { alert('数値を入力してね！'); return; }
+  const data = getMeasurementData(m.id);
+  data.records.push({ date: todayDateKey(), value });
+
+  // 目標達成チェック（懸垂・立ち幅跳びなど「大きいほど良い」項目のみ）
+  if (m.goalEnabled && data.goal != null && value >= data.goal) {
+    const achievedGoal = data.goal;
+    data.goal = null; // 目標をクリアし、次の目標を立てられるように
+    save(); renderMeasurements(); closeModal();
+    setTimeout(()=>{
+      document.getElementById('luSubText').textContent = `${m.name} 目標${achievedGoal}${m.unit}達成！次の目標を決めよう！`;
+      document.getElementById('levelUpBanner').classList.add('show');
+    }, 300);
+    return;
+  }
+
+  save(); renderMeasurements(); closeModal();
+}
+
+// ===== 週間トレーニング振り返り =====
+const STAT_LABELS = { bat:'🏏バッティング', thr:'⚾投球', run:'💨走力・俊敏', stam:'💪フィジカル', men:'🧠メンタル' };
+const STAT_COLORS = { bat:'#ff4d6d', thr:'#ffa040', run:'#4a8c3f', stam:'#FFD700', men:'#d48aff' };
+
+// 直近7日分の実施内容から、カテゴリ別の合計ポイントを集計する
+function calcWeeklyStatTotals(){
+  const totals = { bat:0, thr:0, run:0, stam:0, men:0 };
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  for (let i=0; i<7; i++){
+    const d = new Date(today); d.setDate(d.getDate()-i);
+    const key = toDateKey(d);
+
+    // ① 習い事（lessonRecords）の実施内容から集計
+    const dayRecord = state.completedDays[key];
+    if (dayRecord && dayRecord.lessonRecords){
+      Object.values(dayRecord.lessonRecords).forEach(rec=>{
+        if (!rec.attended || !rec.activities) return;
+        const bonus = calcActivityStatBonus(rec.activities);
+        Object.entries(bonus).forEach(([k,v])=>{ totals[k] = (totals[k]||0) + v; });
+      });
+    }
+
+    // ② 自主トレ（trainingLog）から集計。lesson由来のエントリはtrainings配列に存在しないので自然に除外される
+    const logEntries = state.trainingLog && state.trainingLog[key];
+    if (logEntries){
+      logEntries.forEach(entry=>{
+        const t = trainings.find(tr=>tr.name === entry.name);
+        if (t && t.statBonus){
+          Object.entries(t.statBonus).forEach(([k,v])=>{ totals[k] = (totals[k]||0) + v; });
+        }
+      });
+    }
+  }
+  return totals;
+}
+
+function renderWeeklyReview(){
+  const el = document.getElementById('weeklyReviewChart');
+  if (!el) return;
+
+  const totals = calcWeeklyStatTotals();
+  const maxVal = Math.max(1, ...Object.values(totals));
+  const avg = Object.values(totals).reduce((a,b)=>a+b,0) / 5;
+
+  const barsHTML = Object.entries(totals).map(([k,v])=>{
+    const pct = Math.round((v / maxVal) * 100);
+    const isLow = v < avg * 0.6 && avg > 0; // 平均の6割未満は「少なめ」の目安
+    return `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+          <span>${STAT_LABELS[k]}</span>
+          <span style="color:${isLow?'#e07b00':'#ccc'};font-weight:${isLow?'700':'400'}">${v}pt${isLow?' ⚠️少なめ':''}</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.08);border-radius:10px;height:10px;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:${STAT_COLORS[k]};border-radius:10px"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 体力測定・目標値のサマリー（goalEnabledな項目のみ：立ち幅跳び・懸垂）
+  const measurementHTML = MEASUREMENTS.filter(m=>m.goalEnabled).map(m=>{
+    const data = getMeasurementData(m.id);
+    const latest = data.records.length ? data.records[data.records.length-1] : null;
+    if (!latest) return `<div style="font-size:11px;color:#888;padding:4px 0">${m.icon} ${m.name}: まだ記録なし</div>`;
+    let goalText = '';
+    if (data.goal != null) {
+      const remain = Math.round((data.goal - latest.value)*10)/10;
+      goalText = remain > 0
+        ? `<span style="color:#e07b00">目標${data.goal}${m.unit}まであと${remain}${m.unit}</span>`
+        : `<span style="color:#8aff8a">目標${data.goal}${m.unit}達成済み！</span>`;
+    }
+    return `<div style="display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+      <span>${m.icon} ${m.name}: <b style="color:var(--gold)">${latest.value}${m.unit}</b></span>
+      <span>${goalText}</span>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;color:#888;margin-bottom:10px">直近7日間の実施ポイント合計（習い事＋自主トレ）</div>
+      ${barsHTML}
+    </div>
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px">
+      <div style="font-size:10px;color:#888;margin-bottom:8px">📏 体力測定と目標の進捗</div>
+      ${measurementHTML}
+    </div>
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;margin-top:10px">
+      <div style="font-size:10px;color:#888;margin-bottom:8px">🔍 まだ一度もやっていない自主トレメニュー</div>
+      ${renderUnusedMenusHTML()}
+    </div>
+  `;
+  renderWeeklyMemoList();
+}
+
+// 「TRAINING MENU」から選べる自主トレのうち、これまで一度も記録がないものを一覧化する
+// （チーム練習・セキ先生専用メニューなど、自分で選ぶものではない項目は対象外）
+function calcUnusedTrainings(){
+  const excludeCats = ['team', 'seki'];
+  const eligible = trainings.filter(t => !excludeCats.includes(t.cat));
+
+  // これまでの全trainingLogに登場したメニュー名を集める
+  const usedNames = new Set();
+  Object.values(state.trainingLog || {}).forEach(entries=>{
+    entries.forEach(e => usedNames.add(e.name));
+  });
+
+  return eligible.filter(t => !usedNames.has(t.name));
+}
+
+function renderUnusedMenusHTML(){
+  const unused = calcUnusedTrainings();
+  if (unused.length === 0) {
+    return '<div style="font-size:11px;color:#8aff8a;padding:4px 0">🎉 全部のメニューを一度は試しているね！</div>';
+  }
+  // カテゴリごとにグループ化して見やすく
+  const grouped = {};
+  unused.forEach(t=>{
+    if (!grouped[t.cat]) grouped[t.cat] = [];
+    grouped[t.cat].push(t);
+  });
+  const catNames = { batting:'🏏バット', physical:'⚡フィジカル', throwing:'⚾投球', defense:'🧤守備', recovery:'💆回復', travel:'🌺旅先' };
+
+  return Object.entries(grouped).map(([cat, items])=>`
+    <div style="margin-bottom:8px">
+      <div style="font-size:10px;color:#aaa;margin-bottom:3px">${catNames[cat]||cat}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${items.map(t=>`<span style="font-size:10px;background:rgba(224,123,0,0.15);border:1px solid rgba(224,123,0,0.3);color:#e07b00;border-radius:10px;padding:2px 8px">${t.icon} ${t.name}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// 振り返りメモ
+function openWeeklyMemoModal(){
+  document.getElementById('modalTitle').textContent = '📝 振り返りメモ';
+  document.getElementById('modalDesc').textContent = '週間バランスを見ながら親子で話したこと、次に頑張りたいことをメモしよう。';
+
+  document.getElementById('modalStats').innerHTML = `
+    <div style="width:100%">
+      <textarea id="weeklyMemoInput" placeholder="例：フィジカルが少なめだったので、来週はダッシュとジャンプ系を増やそうと話した" style="width:100%;min-height:80px;background:rgba(255,255,255,0.08);border:1px solid rgba(74,140,63,0.4);color:#fff;padding:10px;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+    </div>
+  `;
+  document.getElementById('modalDoBtn').style.display = 'block';
+  document.getElementById('modalDoBtn').textContent = '✅ メモを保存';
+  document.getElementById('modalDoBtn').onclick = saveWeeklyMemo;
+  const ca = document.getElementById('modalCustomBtn');
+  if(ca) ca.innerHTML = '';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function saveWeeklyMemo(){
+  const text = document.getElementById('weeklyMemoInput').value.trim();
+  if (!text) { alert('メモを入力してね！'); return; }
+  if (!state.weeklyMemos) state.weeklyMemos = [];
+  state.weeklyMemos.push({ date: todayDateKey(), text });
+  save(); renderWeeklyMemoList(); closeModal();
+}
+
+function renderWeeklyMemoList(){
+  const el = document.getElementById('weeklyMemoList');
+  if (!el) return;
+  const memos = state.weeklyMemos || [];
+  if (memos.length === 0){
+    el.innerHTML = '<div style="text-align:center;color:#888;font-size:11px;padding:10px">まだメモがありません</div>';
+    return;
+  }
+  el.innerHTML = memos.slice(-5).reverse().map(m=>{
+    const d = new Date(m.date);
+    return `<div style="background:rgba(74,140,63,0.08);border:1px solid rgba(74,140,63,0.25);border-radius:8px;padding:10px;margin-bottom:6px">
+      <div style="font-size:10px;color:#8aff8a;font-weight:700;margin-bottom:4px">${d.getMonth()+1}/${d.getDate()}</div>
+      <div style="font-size:12px;color:#ddd;line-height:1.5">${m.text}</div>
+    </div>`;
+  }).join('');
+}
+
+// ボタンの下に、完全に見なくなってしまわないよう最新メモだけ小さくヒント表示する
+function renderWeeklyMemoPreview(){
+  const el = document.getElementById('weeklyMemoPreview');
+  if (!el) return;
+  const memos = state.weeklyMemos || [];
+  if (memos.length === 0){ el.innerHTML = ''; return; }
+  const latest = memos[memos.length-1];
+  const d = new Date(latest.date);
+  el.innerHTML = `<div style="font-size:10px;color:#888;padding:0 4px">📝前回(${d.getMonth()+1}/${d.getDate()})：${latest.text.slice(0,40)}${latest.text.length>40?'…':''}</div>`;
+}
+
+function openWeeklyReviewModal(){
+  renderWeeklyReview(); // 最新データで描画
+  document.getElementById('weeklyReviewOverlay').classList.add('show');
+}
+function closeWeeklyReviewModal(){
+  document.getElementById('weeklyReviewOverlay').classList.remove('show');
+  renderWeeklyMemoPreview(); // メモが増えていればプレビューも更新
+}
+
 function doTraining(t, dateKey){
   const targetKey = dateKey || todayDateKey();
   if(t.cat==='recovery') state.recoveryCnt=(state.recoveryCnt||0)+1;
@@ -1871,6 +2710,68 @@ function showRules(force){
 function closeRules(){
   state.rulesSeen=true; save();
   document.getElementById('rulesOverlay').classList.remove('show');
+  // 3つの約束を閉じた後、続けて「この夏のテーマ」も初回なら表示する
+  showSummerTheme(false);
+}
+
+function showSummerTheme(force){
+  if(state.themeSeen && !force) {
+    checkAndShowPackingList(); // テーマは既読ならスキップし、持ち物リストのチェックへ
+    return;
+  }
+  renderSummerTheme(); // ポップアップ内のテーマボードを最新内容で描画
+  document.getElementById('summerThemeOverlay').classList.add('show');
+}
+function closeSummerTheme(){
+  state.themeSeen=true; save();
+  document.getElementById('summerThemeOverlay').classList.remove('show');
+  checkAndShowPackingList(); // テーマを閉じた後、今日の持ち物リストがあれば表示
+}
+
+// ===== 旅先持ち物リスト（該当日だけ自動表示） =====
+// 持ち物リストの中身を描画（ポップアップ内）
+function renderPackingListContent(list){
+  document.getElementById('packingListTitle').textContent = list.title;
+  document.getElementById('packingListItems').innerHTML = list.items.map((item, i)=>`
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;padding:8px;background:rgba(255,255,255,0.05);border-radius:8px;margin-bottom:6px;cursor:pointer">
+      <input type="checkbox" style="width:18px;height:18px">
+      <span>${item}</span>
+    </label>
+  `).join('');
+}
+
+// 今日の持ち物リストがある場合、ボタンを常設表示する（何度でも見返せる）
+function renderPackingListButton(){
+  const area = document.getElementById('packingListButtonArea');
+  if (!area) return;
+  const todayKey = todayDateKey();
+  const list = TRAVEL_PACKING_LISTS[todayKey];
+  if (!list) { area.innerHTML = ''; return; }
+  area.innerHTML = `<button onclick="openPackingList()" style="width:100%;background:rgba(26,107,181,0.15);border:1px solid rgba(26,107,181,0.4);color:#8ab4ff;border-radius:10px;padding:10px;font-size:12px;font-family:inherit;cursor:pointer">🧳 ${list.title}を見る</button>`;
+}
+
+function openPackingList(){
+  const todayKey = todayDateKey();
+  const list = TRAVEL_PACKING_LISTS[todayKey];
+  if (!list) return;
+  renderPackingListContent(list);
+  document.getElementById('packingListOverlay').classList.add('show');
+}
+
+// 初回起動時のみ自動表示するためのチェック（ルール・テーマの連鎖から呼ばれる）
+function checkAndShowPackingList(){
+  const todayKey = todayDateKey();
+  const list = TRAVEL_PACKING_LISTS[todayKey];
+  if (!list) return; // 今日の持ち物リストが設定されていなければ何もしない
+  if (state.packingListSeenDate === todayKey) return; // 今日すでに自動表示済みなら再表示しない
+  renderPackingListContent(list);
+  document.getElementById('packingListOverlay').classList.add('show');
+}
+
+function closePackingList(){
+  state.packingListSeenDate = todayDateKey(); // 「今日の自動表示は済んだ」の記録。ボタンからはこの後も何度でも見られる
+  save();
+  document.getElementById('packingListOverlay').classList.remove('show');
 }
 
 // ===== INIT =====
@@ -1878,7 +2779,12 @@ function closeRules(){
 //    ここではまだサーバーの最新状態を取得していないため、サボり判定(checkGrowthDecay)は行わない。
 //    （他端末で最新の記録がある場合、古いローカルキャッシュに基づいて誤ってペナルティを課してしまうバグを防ぐため）
 renderAll({checkDecay:false});
-showRules(false);
+// ルール→テーマ→持ち物リストの順で、まだ見ていないものだけ連鎖して表示する
+if (state.rulesSeen) {
+  showSummerTheme(false); // ルール既読なら、テーマ確認へ（テーマも既読なら持ち物リストへ連鎖）
+} else {
+  showRules(false); // ルール未読ならルールから開始（closeRules内で以降へ連鎖する）
+}
 // ② その後サーバーから最新データを取得して上書き（他端末の更新を反映）。
 //    ここで初めてサボり判定を行う。
 loadFromServer();
