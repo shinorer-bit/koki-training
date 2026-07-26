@@ -752,6 +752,11 @@ let pendingSync = false;
 // サーバーからの初回読み込みが完了する（または失敗が確定する）まではtrueのまま。
 // これがfalseの間は、間違って初期値や古いデータをサーバーへ送信してしまわないよう、syncToServerを待機させる。
 let initialLoadPending = true;
+// サーバーからの読み込みに失敗した場合はtrueになる。trueの間はsyncToServerを完全にブロックする
+// （古い・不完全なローカルデータで、サーバー上の正しい最新データを誤って上書きしてしまう事故を防ぐため）。
+// ローカル保存(saveLocal)は引き続き行われるので、記録内容自体が失われることはない。
+// 「🔄最新版に更新」でページを再読み込みすれば、このフラグはリセットされ通常の同期に戻る。
+let serverLoadFailed = false;
 
 // 起動時：まずローカルキャッシュを即座に反映（オフラインでも表示できるように）
 try { const s = localStorage.getItem('koki-2026'); if(s) Object.assign(state, JSON.parse(s)); } catch(e){}
@@ -770,6 +775,12 @@ function syncToServer(){
     // サーバーからの初回読み込みがまだ済んでいない間は、うっかり初期値やローカルの古いデータで
     // サーバーを上書きしてしまわないよう、送信を保留する（ロード完了後にまとめて送信される）。
     pendingSync = true;
+    return;
+  }
+  if (serverLoadFailed) {
+    // サーバーからの読み込み自体に失敗しているため、このタイミングでの送信は安全性を確認できない。
+    // 誤って古い/不完全なデータで正しい最新データを上書きしてしまわないよう、送信をブロックする。
+    // （ローカル保存は既に完了しているので、記録が消えることはない。次回正常に読み込めれば自動的に同期される）
     return;
   }
   if(isSyncing){ pendingSync=true; return; }
@@ -797,14 +808,33 @@ function loadFromServer(){
         saveLocal();
         renderAll({checkDecay:true}); // サーバーの最新データを反映してから、初めてサボり判定を行う
       }
+      serverLoadFailed = false; // 読み込み成功（レスポンスは正常に受信できた）
     })
-    .catch(()=>{ /* オフライン時は静かに失敗、ローカル保存は既に完了済み */ })
+    .catch(()=>{
+      // オフライン等で読み込みに失敗。以降の書き込みをブロックし、安全側に倒す。
+      serverLoadFailed = true;
+      renderSyncWarning();
+    })
     .finally(()=>{
       // 読み込みの成功・失敗にかかわらず、初回ロードは完了とみなし、保留していた保存要求があれば送信する。
+      // （serverLoadFailedがtrueの場合はsyncToServer内でブロックされるので安全）
       initialLoadPending = false;
       if (pendingSync) { pendingSync = false; syncToServer(); }
     });
 }
+
+// サーバー読み込み失敗時、画面上に軽い警告を表示する（記録自体はローカルに保存され続けるので安心してよい旨を伝える）
+function renderSyncWarning(){
+  let el = document.getElementById('syncWarningBanner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'syncWarningBanner';
+    el.style.cssText = 'background:rgba(224,123,0,0.15);border-bottom:1px solid rgba(224,123,0,0.4);color:#ffb347;font-size:11px;padding:8px 12px;text-align:center';
+    document.body.insertBefore(el, document.body.firstChild);
+  }
+  el.textContent = '⚠️ サーバーとの通信に失敗しました。この端末の記録は保存されますが、他の端末とは同期されません。「🔄最新版に更新」を試してください。';
+}
+
 
 function renderAll(opts){
   opts = opts || {};
