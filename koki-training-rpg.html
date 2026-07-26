@@ -541,7 +541,13 @@
     </div>
     <button id="restBtn" onclick="declareRestToday()" style="width:100%;margin-top:10px;background:rgba(26,107,181,0.15);border:1px solid rgba(26,107,181,0.4);color:#8ab4ff;border-radius:8px;padding:8px;font-size:11px;font-family:inherit;cursor:pointer">😴 今日は休む（ペナルティなし）</button>
   </div>
+
+  <!-- CATEGORY TRACKERS: バッティング・守備・回復 -->
+  <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px" id="categoryTrackers"></div>
 </div>
+
+<!-- FOCUS GOAL (今週の目標・期間限定表示) -->
+<div id="focusGoalBox"></div>
 
 <!-- SUMMER THEME & RULES & WEEKLY REVIEW (ボタンから確認するポップアップ形式) -->
 <div style="padding:0 12px 8px;display:flex;gap:8px">
@@ -675,7 +681,7 @@
 
 <script>
 // ===== STATE =====
-const TOTAL_WEEKS = 8;
+const TOTAL_WEEKS = 9;
 const START_DATE = new Date('2026-07-06');
 const XP_PER_LEVEL = [0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700, 3300];
 
@@ -691,6 +697,23 @@ function toDateKey(date){
 }
 function todayDateKey(){
   return toDateKey(new Date());
+}
+// 指定日が属する週の月曜日の日付キーを返す（頻度チャレンジの週リセット判定に使用）
+function getWeekStartKey(date){
+  const d = new Date(date);
+  const dow = d.getDay(); // 0=日,1=月,...
+  const diffToMonday = dow===0 ? -6 : 1-dow; // 日曜なら前の月曜まで6日戻る
+  d.setDate(d.getDate()+diffToMonday);
+  return toDateKey(d);
+}
+
+// 指定日が属する週の「月曜日」の日付キーを返す（頻度チャレンジの週リセット判定に使用）
+function getMondayKeyOf(date){
+  const d = new Date(date);
+  const dow = d.getDay(); // 0=日,1=月,...
+  const diff = dow===0 ? -6 : 1-dow; // 日曜なら6日前の月曜、それ以外は今週の月曜まで戻る
+  d.setDate(d.getDate()+diff);
+  return toDateKey(d);
 }
 
 let state = {
@@ -710,6 +733,16 @@ let state = {
   weeklyMemos: [],         // [{date, text}] 親子で話し合った振り返りメモ
   themeSeen: false,        // 「この夏のテーマ」を見たか
   packingListSeenDate: null, // 旅先持ち物リストのポップアップを最後に閉じた日付（この日は再表示しない）
+  categoryStreaks: {
+    batting:  { streak: 0, growth: 100.0, lastDay: null },
+    defense:  { streak: 0, growth: 100.0, lastDay: null },
+    recovery: { streak: 0, growth: 100.0, lastDay: null },
+    agility:  { streak: 0, growth: 100.0, lastDay: null },
+  },
+  frequencyChallenges: {
+    // groupId -> { weekStart:'YYYY-MM-DD', days:['2026-07-06',...], items:{trainingId:true,...} }
+  },
+  focusGoalBonusDates: {}, // dateKey -> true : その日「今週の目標」関連ボーナスをもらったか（1日1回の重複防止）
 };
 
 // ===== クラウド同期（Google スプレッドシート経由） =====
@@ -778,6 +811,7 @@ function renderAll(opts){
   if (opts.checkDecay) checkGrowthDecay();
   renderStatus();
   renderGrowth();
+  renderFocusGoal();
   renderChallenges();
   renderMeasurements();
   renderWeeklyMemoPreview();
@@ -794,18 +828,25 @@ function renderAll(opts){
 // 継続系トレーニング（毎日やる系→コンボ対象）
 const CONTINUOUS_IDS = new Set([
   'swing-light','tee-batting','tube-swing','shadow-pitch',
-  'stretch-bar','stretch','travel-shadow','travel-stretch'
+  'stretch-bar','stretch','travel-shadow','travel-stretch',
+  'ladder'
 ]);
 
 // ===== SPECIAL DAY DEFINITIONS =====
-// 7月分はカレンダー実データに基づき、日付ごとに明示登録（正確性優先）
+// 7月分・8月分ともにカレンダー実データに基づき、日付ごとに明示登録（正確性優先）
 const SEKI = {
   '2026-07-08':'9:15-14:30','2026-07-10':'9:15-11:30',
   '2026-07-22':'9:15-14:15','2026-07-23':'9:30-13:00','2026-07-24':'9:15-11:30',
+  '2026-07-31':'8:45-13:00',
+  '2026-08-05':'9:15-14:15','2026-08-06':'9:30-13:00',
+  '2026-08-10':'8:45-13:00',
+  '2026-08-12':'9:15-14:00',
+  '2026-08-19':'9:15-14:15','2026-08-20':'9:30-13:00',
+  '2026-08-26':'9:15-14:15',
 };
 const OKINAWA = new Set(['2026-07-13','2026-07-14','2026-07-15','2026-07-16','2026-07-17']);
 const SPECIAL_DAYS = {
-  '2026-07-31':{ label:'🏫 セキ先生 遠足 8:45-17:00', note:'セキ先生の遠足！身体を思いっきり動かしてリフレッシュ。夜はストレッチポール＆ストレッチだけ。' }
+  '2026-08-24':{ label:'🏫 セキ先生 遠足 8:45-15:00', note:'セキ先生の遠足！身体を思いっきり動かしてリフレッシュ。夜はストレッチポール＆ストレッチだけ。' },
 };
 
 // 事前登録した休養日（父が「〇月〇日を休養日にして」と伝えれば、ここに日付を追加する）
@@ -825,6 +866,17 @@ const OKADA = {
   '2026-07-28': '16:00-17:30',
   '2026-07-29': '10:00-11:30',
   '2026-07-30': '13:00-14:30',
+  '2026-07-24': '10:00-11:30',
+  '2026-08-03': '13:00-14:30',
+  '2026-08-04': '16:00-17:30',
+  '2026-08-07': '10:00-11:30',
+  '2026-08-14': '13:00-14:30',
+  '2026-08-17': '13:00-14:30',
+  '2026-08-18': '16:00-17:30',
+  '2026-08-21': '10:00-11:30',
+  '2026-08-25': '16:00-17:30',
+  '2026-08-27': '10:00-11:30',
+  '2026-08-28': '10:00-11:30',
 };
 
 // 英語レッスン with Kiat先生（日によって時間帯が異なる。カレンダー実データに基づく）
@@ -835,13 +887,35 @@ const ENGLISH_LESSONS = {
   '2026-07-22': ['16:00-17:00'],
   '2026-07-30': ['9:00-10:00'],
   // 7/10・7/24はレッスンなし
+  '2026-08-12': ['16:00-17:00'],
+  '2026-08-13': ['16:30-17:30'],
+  '2026-08-17': ['9:00-9:30'],
+  '2026-08-19': ['16:00-17:00'],
+  '2026-08-20': ['16:00-16:30'],
+  '2026-08-26': ['16:00-17:00'],
+  '2026-08-27': ['9:00-9:30','16:00-16:30'],
 };
 
-// SpeakSeed（英語ディベートレッスン・新規追加、隔週火曜20:00-20:50想定）
-const SPEAKSEED = new Set(['2026-07-07','2026-07-21','2026-07-28']);
+// SpeakSeed（英語ディベートレッスン・隔週火曜20:00-20:50想定）
+const SPEAKSEED = new Set([
+  '2026-07-07','2026-07-21','2026-07-28',
+  '2026-08-04','2026-08-11','2026-08-18','2026-08-25',
+]);
 
 // 皮膚科（不定期）
-const CLINIC = { '2026-07-08': '17:30-18:00' };
+const CLINIC = {
+  '2026-07-08': '17:30-18:00',
+  '2026-07-28': '10:00-10:30',
+  '2026-08-05': '17:30-18:00',
+};
+
+// 歯科（不定期・アッコさん）
+const DENTAL = {
+  '2026-08-07': '14:00-14:30',
+};
+
+// Yutoくんのお泊まり予定（習い事に影響はないが、予定として表示）
+const SLEEPOVER = new Set(['2026-08-03','2026-08-04']);
 
 // 祝日（習い事なしの特別休み）
 const HOLIDAYS = { '2026-07-20': '海の日' };
@@ -852,29 +926,55 @@ const KAWAKAMI = {
   '2026-07-10': '18:30-19:00',
   '2026-07-21': '18:30-19:00',
   '2026-07-24': '18:00-18:30',
-  '2026-07-28': '18:30-19:00',
+  '2026-07-28': '18:00-18:30',
   '2026-07-31': '18:00-18:30',
+  '2026-08-04': '18:30-19:00',
+  '2026-08-07': '18:30-19:00',
+  '2026-08-14': '18:30-19:00',
+  '2026-08-18': '18:30-19:00',
+  '2026-08-21': '18:30-19:00',
+  '2026-08-25': '18:30-19:00',
+  '2026-08-28': '18:30-19:00',
 };
 
+// 川上コーチが「その火・金曜日は休み」の特例（デフォルトでは火・金は自動で川上コーチが入るため、休みの日は明示的に除外する）
+const KAWAKAMI_OFF = new Set(['2026-08-11']);
+
 // LITALICO（実データに基づき時間統一）
-const LITALICO_DAYS = new Set(['2026-07-10','2026-07-24']);
+const LITALICO_DAYS = new Set([
+  '2026-07-10','2026-07-24','2026-07-31',
+  '2026-08-07','2026-08-21','2026-08-28',
+]);
 
 // プログラミング教室（実データ：19:10-20:00に統一）
-const PROGRAMMING_DAYS = new Set(['2026-07-08','2026-07-22','2026-07-29']);
+const PROGRAMMING_DAYS = new Set([
+  '2026-07-08','2026-07-22','2026-07-29',
+  '2026-08-05','2026-08-12','2026-08-19','2026-08-26',
+]);
 
 // スイミング（実データに基づく日付、木曜以外にも入ることがある）
 const SWIMMING_DAYS = new Set(['2026-07-09','2026-07-23']);
+// スイミングが「その木曜日は休み」の特例（デフォルトでは木曜は自動でスイミングが入るため、休みの日は明示的に除外する）
+const SWIMMING_OFF = new Set(['2026-08-13']);
 
 // 龍之介コーチ不定期追加分（通常の月曜以外、または月曜以外の日）
 const RYUNOSUKE_EXTRA = new Set(['2026-07-09']); // 7/9(木) 13:00-14:00
 const RYUNOSUKE_TIMES = {
   '2026-07-06':'16:00-17:00','2026-07-09':'13:00-14:00','2026-07-13':'16:00-17:00',
   '2026-07-27':'16:00-17:00',
+  '2026-08-03':'16:00-17:00','2026-08-10':'16:00-17:00','2026-08-17':'16:00-17:00','2026-08-24':'16:00-17:00',
 };
 
-// 水曜朝練 w川上コーチ（第5水曜日は休み）6:30-7:30 ※7月は実データ上「朝練」表記なし、無効化
+// 水曜朝練 w川上コーチ（第5水曜日は休み）6:45-7:30
+// 7月は実データ上「朝練」の記載がなかったため無効、8月から新たに開始
 function isMorningPracticeWed(date){
-  return false; // カレンダー実データに朝練の記載がないため一旦オフ
+  const dow = date.getDay();
+  if (dow !== 3) return false;
+  const key = toDateKey(date);
+  if (key < '2026-08-01') return false; // 8月からスタート
+  const d = date.getDate();
+  const isFifthWed = d > 28; // 簡易的に第5水曜日を判定
+  return !isFifthWed;
 }
 
 // 高負荷トレID（超回復=中1日必要）
@@ -952,6 +1052,61 @@ function calcActivityStatBonus(activities){
   return agg;
 }
 
+// ===== バッティング・守備・回復 継続トラッカー用：各実施内容がどのカテゴリに属するか =====
+const ACTIVITY_CATEGORY_MAP = {
+  // バッティング系
+  '素振り':'batting', 'トスバッティング':'batting', 'シャトル打ち':'batting', 'バッティング':'batting',
+  '①スイング確認（軸回転・左膝締める）':'batting',
+  'ティーバッティング':'batting', 'バント練習':'batting',
+  // 守備系
+  '守備（ゴロ捌き）':'defense', '守備（送球）':'defense', '守備':'defense',
+  '②守備（目線一定・回り込み）':'defense', 'ゴロ捌き':'defense', '守備練習':'defense', 'キャッチボール':'defense',
+  // 回復系
+  'リカバリー':'recovery',
+  // フィジカル系（今週の目標ボーナス対象にも使用）
+  'フィジカル':'physical',
+  'バランス＆リズム（コーディネーション）':'physical',
+  '切り返し＆方向転換（アジリティ）':'physical',
+  'ダッシュ＆トップスピード（スピード）':'physical',
+  'スタートダッシュ（クイックネス）':'physical',
+  '測定会':'physical',
+  'ジャンプ系トレーニング':'physical',
+  'バランス系トレーニング':'physical',
+  '俊敏系ドリル':'physical',
+  'ラダー':'physical',
+};
+
+// 指定日に、指定カテゴリ(batting/defense/recovery)の実施があったかを、
+// 習い事(lessonRecords)と自主トレ(trainingLog)の両方から判定する
+function hasCategoryActivityOnDay(dateKey, category){
+  // ① 習い事の実施内容(activities)から判定
+  const dayRecord = state.completedDays[dateKey];
+  if (dayRecord && dayRecord.lessonRecords){
+    const found = Object.values(dayRecord.lessonRecords).some(rec=>{
+      if (!rec.attended || !rec.activities) return false;
+      return rec.activities.some(a => ACTIVITY_CATEGORY_MAP[a] === category);
+    });
+    if (found) return true;
+  }
+  // ② 自主トレ(trainingLog)から判定（trainingsの cat と一致するか）
+  const logEntries = state.trainingLog && state.trainingLog[dateKey];
+  if (logEntries){
+    const found = logEntries.some(entry=>{
+      const t = trainings.find(tr=>tr.name === entry.name);
+      return t && t.cat === category;
+    });
+    if (found) return true;
+  }
+  return false;
+}
+
+// 指定日に、バッティング・守備・回復のいずれか1つでも実施があったか（全体の成長メーター用）
+function hasAnyKeyCategoryOnDay(dateKey){
+  return hasCategoryActivityOnDay(dateKey,'batting')
+      || hasCategoryActivityOnDay(dateKey,'defense')
+      || hasCategoryActivityOnDay(dateKey,'recovery');
+}
+
 function getDayDef(date) {
   const key = toDateKey(date);
   const dow  = date.getDay(); // 0=日,1=月,2=火,3=水,4=木,5=金,6=土
@@ -967,16 +1122,20 @@ function getDayDef(date) {
   const okadaL = OKADA[key] ? [mkLesson('okada','📖 岡田先生（家庭教師） '+OKADA[key], false)] : [];
   const speakseedL = SPEAKSEED.has(key) ? [mkLesson('speakseed','🗣️ SpeakSeed（英語ディベート） 20:00-20:50', false)] : [];
   const clinicL = CLINIC[key] ? [mkLesson('clinic','🏥 皮膚科 '+CLINIC[key], false)] : [];
+  const dentalL = DENTAL[key] ? [mkLesson('dental','🦷 歯科 '+DENTAL[key], false)] : [];
+  const sleepoverL = SLEEPOVER.has(key) ? [mkLesson('sleepover','🛏️ Yutoくんとお泊まり予定', false)] : [];
   const ryunosukeL = RYUNOSUKE_TIMES[key] ? [mkLesson('ryunosuke','⚾ 龍之介コーチ '+RYUNOSUKE_TIMES[key], true, ACTIVITY_PRESETS.ryunosuke)] : [];
   const kawakamiTime = KAWAKAMI[key];
-  // 川上コーチは「火・金」が基本の曜日、またはKAWAKAMIに個別登録がある日のみ存在する
-  const isKawakamiDay = kawakamiTime || dow===2 || dow===5;
+  // 川上コーチは「火・金」が基本の曜日、またはKAWAKAMIに個別登録がある日のみ存在する（ただしKAWAKAMI_OFFの日は除く）
+  const isKawakamiDay = !KAWAKAMI_OFF.has(key) && (kawakamiTime || dow===2 || dow===5);
   const kawakamiL = isKawakamiDay
     ? [mkLesson('kawakami','🏏 川上コーチ '+(kawakamiTime || '18:30-19:00'), true, ACTIVITY_PRESETS.kawakami)]
     : [];
   const litalicoL = LITALICO_DAYS.has(key) ? [mkLesson('litalico','🤖 LITALICO 15:40-17:20（移動込15:10-17:50目安）', false)] : [];
   const programmingL = PROGRAMMING_DAYS.has(key) ? [mkLesson('programming','💻 プログラミング教室 19:10-20:00（移動込18:55-20:15目安）', false)] : [];
-  const swimmingL = (SWIMMING_DAYS.has(key) || dow===4) ? [mkLesson('swimming','🏊 こうきスイミング 17:40-18:40（17:30集合、移動込16:55-19:25目安）', true, ACTIVITY_PRESETS.swimming)] : [];
+  const isSwimmingDay = !SWIMMING_OFF.has(key) && (SWIMMING_DAYS.has(key) || dow===4);
+  const swimmingL = isSwimmingDay ? [mkLesson('swimming','🏊 こうきスイミング 17:40-18:40（17:30集合、移動込16:55-19:25目安）', true, ACTIVITY_PRESETS.swimming)] : [];
+  const morningPracticeL = isMorningPracticeWed(date) ? [mkLesson('morning-practice','🏏 川上先生朝練 6:45-7:30', true, ACTIVITY_PRESETS.kawakami)] : [];
 
   if (HOLIDAYS[key]) {
     return { lessons:[mkLesson('holiday','🎌 祝日：'+HOLIDAYS[key], false)], load:'rest', selfOk:true,
@@ -984,17 +1143,27 @@ function getDayDef(date) {
   }
 
   if (SPECIAL_DAYS[key]) {
-    return { lessons:[...okadaL, mkLesson('special',SPECIAL_DAYS[key].label, true, ACTIVITY_PRESETS.seki)], load:'high', selfOk:false,
+    // その日の通常の習い事も保持しつつ、特別イベント（セキ先生の遠足等）を追加する
+    const baseLessons=[...englishL, ...okadaL, ...clinicL, ...dentalL, ...sleepoverL, ...ryunosukeL];
+    if (dow===1) baseLessons.push(mkLesson('kyasuku','⚡ キャスク 18:30-19:30（移動込17:30-20:30目安）', true, ACTIVITY_PRESETS.kyasuku));
+    if (morningPracticeL.length) baseLessons.push(...morningPracticeL);
+    if (programmingL.length) baseLessons.push(...programmingL);
+    if (litalicoL.length) baseLessons.push(...litalicoL);
+    baseLessons.push(...kawakamiL);
+    if (swimmingL.length) baseLessons.push(...swimmingL);
+    baseLessons.push(mkLesson('special',SPECIAL_DAYS[key].label, true, ACTIVITY_PRESETS.seki));
+    return { lessons:baseLessons, load:'high', selfOk:false,
       recCats:['recovery'], note:SPECIAL_DAYS[key].note, icon:'🎢', special:true };
   }
 
   if (SEKI[key]) {
     // その日の他の習い事も保持しつつ、セキ先生を追加
-    const baseLessons=[...englishL, ...okadaL, ...clinicL, ...ryunosukeL];
+    const baseLessons=[...englishL, ...okadaL, ...clinicL, ...dentalL, ...sleepoverL, ...ryunosukeL];
+    if (morningPracticeL.length) baseLessons.push(...morningPracticeL);
     if (programmingL.length) baseLessons.push(...programmingL);
     if (litalicoL.length) baseLessons.push(...litalicoL);
     baseLessons.push(...kawakamiL);
-    if (swimmingL.length && dow===4) baseLessons.push(...swimmingL);
+    if (swimmingL.length) baseLessons.push(...swimmingL);
     baseLessons.push(mkLesson('seki','🏫 セキ先生 '+SEKI[key], true, ACTIVITY_PRESETS.seki));
     return { lessons:baseLessons, load:'high', selfOk:false,
       recCats:['recovery'], note:'セキ先生の日！その他の習い事も含めて予定が多い日。終わったらリカバリーのみ。高負荷自主練はNG。', icon:'🏫' };
@@ -1006,31 +1175,31 @@ function getDayDef(date) {
   }
 
   if (dow===6||dow===0) {
-    return { lessons:[...okadaL, mkLesson('team','⚾ チーム練習・試合', true, ACTIVITY_PRESETS.team)], load:'high', selfOk:false, recCats:['recovery'],
+    return { lessons:[...okadaL, ...sleepoverL, mkLesson('team','⚾ チーム練習・試合', true, ACTIVITY_PRESETS.team)], load:'high', selfOk:false, recCats:['recovery'],
       note: dow===0 ? '試合後は全力リカバリー！ストレッチポール＆ストレッチを忘れずに。' : 'チーム練習・試合！全力プレーでXP大量ゲット！', icon:'⚾' };
   }
 
   if (dow===1) { // 月：龍之介コーチ16-17（固定）、キャスク18:30-19:30
-    const lessons=[...englishL, ...okadaL, ...ryunosukeL];
+    const lessons=[...englishL, ...okadaL, ...sleepoverL, ...ryunosukeL];
     lessons.push(mkLesson('kyasuku','⚡ キャスク 18:30-19:30（移動込17:30-20:30目安）', true, ACTIVITY_PRESETS.kyasuku));
     return { lessons, load:'high', selfOk:false, recCats:['recovery'],
       note:'キャスク後は完全休養。午前中〜15:00頃に軽めの自主トレは可、夜は休む。', icon:'⚡' };
   }
 
   if (dow===2) { // 火：岡田先生16-17:30、川上コーチ、隔週SpeakSeed20:00-20:50
-    const lessons=[...englishL, ...okadaL, ...kawakamiL, ...speakseedL];
+    const lessons=[...englishL, ...okadaL, ...sleepoverL, ...kawakamiL, ...speakseedL];
     return { lessons, load:'mid', selfOk:true, recCats:['recovery','batting'],
       note: speakseedL.length ? '岡田先生→川上コーチ→SpeakSeedと夜まで予定が続く日。自主トレは軽めに。' : '家庭教師の前（午前〜昼）か、川上コーチ後に軽め自主トレ。体幹・ダッシュはNG（月との超回復考慮）。', icon:'🏏' };
   }
 
-  if (dow===3) { // 水：プログラミング19:10-20:00、皮膚科など不定期
-    const lessons=[...englishL, ...okadaL, ...clinicL, ...programmingL];
+  if (dow===3) { // 水：プログラミング19:10-20:00、皮膚科など不定期、8月から朝練あり
+    const lessons=[...englishL, ...okadaL, ...clinicL, ...dentalL, ...morningPracticeL, ...programmingL];
     return { lessons, load: SEKI[key]?'high':'rest', selfOk:true, recCats:['recovery','throwing','batting'],
       note:'週の中間回復日。日中〜夕方にストレッチポール・素振り・シャドウなど軽めに。体幹・ダッシュはNG。', icon:'😴' };
   }
 
   if (dow===4) { // 木：スイミング17:40-18:40（17:30集合）、不定期で龍之介コーチ
-    const lessons=[...englishL, ...okadaL, ...ryunosukeL, ...swimmingL];
+    const lessons=[...englishL, ...okadaL, ...dentalL, ...ryunosukeL, ...swimmingL];
     return { lessons, load:'mid', selfOk:true, recCats:['throwing','recovery'],
       note:'スイミングで全身使う。日中にシャドウ・ゴムチューブ肩まわり程度なら可。', icon:'🏊' };
   }
@@ -1052,6 +1221,28 @@ const LOAD_STYLE = {
 };
 
 // ===== 夏休みチャレンジ =====
+// ===== 今週の目標（チーム練習を受けて設定。期間中はメイン画面に常時表示） =====
+// 期間を過ぎると自動的に表示されなくなる。次回また目標が決まったら、この配列に追加するだけでOK。
+const WEEKLY_FOCUS_GOALS = [
+  {
+    startDate: '2026-07-26', endDate: '2026-08-02',
+    title: '今週の目標（チーム練習を受けて）',
+    goals: [
+      { icon:'🏏', text:'バッティング：ポイントを前で打つ' },
+      { icon:'💨', text:'バッティング：スイングを速くする' },
+      { icon:'🧤', text:'守備：エラーしてもいいから前に出る' },
+    ],
+    // このボーナスの対象になる自主トレ・実施内容のカテゴリ（bat/defense系＋フィジカル・体幹系）
+    bonusCategories: ['batting','defense','physical'],
+    bonusXP: 15,
+  },
+];
+
+// 指定日に該当する今週の目標を返す（複数期間が重ならない前提。該当なしはnull）
+function getActiveFocusGoal(dateKey){
+  return WEEKLY_FOCUS_GOALS.find(g => dateKey >= g.startDate && dateKey <= g.endDate) || null;
+}
+
 // ===== 旅先持ち物リスト（日付ごとに設定。その日だけ自動でポップアップ表示） =====
 const TRAVEL_PACKING_LISTS = {
   '2026-07-12': {
@@ -1176,7 +1367,7 @@ const trainings = [
     xp:17, time:'25分', cat:'physical', tags:['stamina'], statBonus:{stam:3,bat:1}, highLoad:true, travelOk:true },
   { id:'ladder', icon:'🪜', name:'ラダートレーニング',
     desc:'2イン1アウト・シャッフル・クロスステップなど5種目×3セット。足の回転数と方向転換の鋭さを上げる俊敏性トレ。アップ要素が強く毎日でもOK。',
-    xp:15, time:'20分', cat:'physical', tags:['run'], statBonus:{run:4}, highLoad:false, travelOk:false },
+    xp:15, time:'20分', cat:'agility', tags:['run'], statBonus:{run:4}, highLoad:false, travelOk:false },
   { id:'back-lunge', icon:'🦵', name:'バックラウンジ',
     desc:'後ろ足を引いて深くしゃがむランジ×左右15回×3セット。股関節の可動域とお尻・太もも前面を強化。打撃・走塁の土台に。',
     xp:14, time:'15分', cat:'physical', tags:['run','stamina'], statBonus:{run:2,stam:2}, highLoad:true, travelOk:true },
@@ -1244,6 +1435,23 @@ const trainings = [
   { id:'seki-defense',  icon:'🏫', name:'セキ先生：守備',            desc:'セキ先生の指導メニュー。', xp:25, time:'—', cat:'seki', tags:['defense','throwing'], statBonus:{thr:2,men:2},       highLoad:false, seki:true },
   { id:'seki-recovery', icon:'🏫', name:'セキ先生：リカバリー',      desc:'セキ先生の指導メニュー。', xp:15, time:'—', cat:'seki', tags:['recovery'],           statBonus:{stam:4},            highLoad:false, seki:true },
 ];
+
+// ===== 週間頻度チャレンジ（毎日ではなく週の頻度を目安にしたい種目のグループ） =====
+// 達成条件：グループ内のどの種目でもよいので、週に「target」回以上、実施した日を作ること
+// （1日に複数種目まとめて実施してもその日は1回とカウント。実施した種目名は記録・表示する）
+const FREQUENCY_GROUPS = [
+  { id:'physical-group', icon:'⚡', name:'フィジカル系（瞬発力・ジャンプ）', target:2,
+    trainingIds:['balance-dome','box-jump','triple-jump','dash-sprint','slide-mat'] },
+  { id:'core-power-group', icon:'💪', name:'体幹・パワー系', target:2,
+    trainingIds:['core-training','back-lunge','medicine-ball'] },
+  { id:'throwing-group', icon:'⚾', name:'投球強化系', target:2,
+    trainingIds:['plyo-ball','tube-shoulder'] },
+];
+
+// 指定のtraining idが、どの頻度グループに属するか調べる
+function findFrequencyGroupForTraining(trainingId){
+  return FREQUENCY_GROUPS.find(g=>g.trainingIds.includes(trainingId));
+}
 
 // ===== ACHIEVEMENTS =====
 const achievements = [
@@ -1334,7 +1542,7 @@ function renderStatus() {
 // ===== RENDER: WEEK TABS =====
 function renderWeekTabs() {
   const c=document.getElementById('weekTabs'); c.innerHTML='';
-  const starts=['7/6','7/13','7/20','7/27','8/3','8/10','8/17','8/24'];
+  const starts=['7/6','7/13','7/20','7/27','8/3','8/10','8/17','8/24','8/31'];
   for(let w=1;w<=TOTAL_WEEKS;w++){
     const btn=document.createElement('button');
     btn.className='week-tab'+(state.currentWeek===w?' active':'');
@@ -1826,10 +2034,31 @@ function saveLessonRecords(key){
 
   state.completedDays[key].lessonRecords = newLessonRecords;
 
-  // 何かしら新規で記録があれば継続日数（streak）も更新
-  if (newlyAttended.length > 0) {
-    updateStreakOnRecord(key);
+  // 新規で参加した予定の実施内容(activities)から、バッティング・守備・回復・フィジカルのカテゴリ該当をチェック
+  let matchedCategories = new Set();
+  newlyAttended.forEach(lessonId=>{
+    const wasAttended = prevRecords[lessonId] && prevRecords[lessonId].attended;
+    if (!wasAttended) {
+      const activities = newLessonRecords[lessonId].activities;
+      activities.forEach(a=>{
+        const cat = ACTIVITY_CATEGORY_MAP[a];
+        if (cat) matchedCategories.add(cat);
+      });
+    }
+  });
+
+  // 全体＋カテゴリ別の継続日数は「バッティング・守備・回復」のみが対象
+  const keyCategoryMatched = new Set([...matchedCategories].filter(c => ['batting','defense','recovery'].includes(c)));
+  if (keyCategoryMatched.size > 0) {
+    updateStreakOnRecord(key); // 全体
+    keyCategoryMatched.forEach(cat=>updateCategoryStreak(cat, key));
   }
+
+  // 「今週の目標」関連ボーナス（バッティング・守備・フィジカルのいずれかが対象、1日1回まで）
+  let gotFocusBonus = false;
+  matchedCategories.forEach(cat=>{
+    if (tryAwardFocusGoalBonus(key, cat)) gotFocusBonus = true;
+  });
 
   if (addedXP > 0) addXP(addedXP, statBonusAgg, key);
   else save();
@@ -1839,6 +2068,14 @@ function saveLessonRecords(key){
   renderAchievements();
   renderLog();
   renderGrowth();
+  renderFocusGoal();
+
+  if (gotFocusBonus) {
+    setTimeout(()=>{
+      document.getElementById('luSubText').textContent = `⭐今週の目標に向けてがんばったね！ボーナスXPゲット！`;
+      document.getElementById('levelUpBanner').classList.add('show');
+    }, 300);
+  }
 }
 
 function openTrainingModal(t) {
@@ -2417,12 +2654,48 @@ function renderWeeklyReview(){
       <div style="font-size:10px;color:#888;margin-bottom:8px">📏 体力測定と目標の進捗</div>
       ${measurementHTML}
     </div>
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;margin-top:10px" id="frequencyChallengeBox">
+      <div style="font-size:10px;color:#888;margin-bottom:8px">🎯 今週の頻度チャレンジ（週2回目安）</div>
+      <div id="frequencyChallengeList"></div>
+    </div>
     <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;margin-top:10px">
       <div style="font-size:10px;color:#888;margin-bottom:8px">🔍 まだ一度もやっていない自主トレメニュー</div>
       ${renderUnusedMenusHTML()}
     </div>
   `;
+  renderFrequencyChallenges();
   renderWeeklyMemoList();
+}
+
+// 週間頻度チャレンジの表示（フィジカル系・体幹パワー系・投球強化系）
+function renderFrequencyChallenges(){
+  const el = document.getElementById('frequencyChallengeList');
+  if (!el) return;
+
+  const todayWeekStart = getWeekStartKey(new Date());
+
+  el.innerHTML = FREQUENCY_GROUPS.map(g=>{
+    const data = state.frequencyChallenges[g.id];
+    const isCurrentWeek = data && data.weekStart === todayWeekStart;
+    const dayCount = isCurrentWeek ? data.days.length : 0;
+    const achieved = dayCount >= g.target;
+    const itemNames = isCurrentWeek
+      ? Object.keys(data.items).map(id=>{ const t=trainings.find(tr=>tr.id===id); return t ? t.name : id; })
+      : [];
+
+    return `
+      <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06)">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+          <span>${g.icon} ${g.name}</span>
+          <span style="color:${achieved?'#8aff8a':'#ccc'};font-weight:${achieved?'700':'400'}">${dayCount}/${g.target}回${achieved?' ✅達成！':''}</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.08);border-radius:10px;height:8px;overflow:hidden;margin-bottom:4px">
+          <div style="width:${Math.min(100,(dayCount/g.target)*100)}%;height:100%;background:${achieved?'#8aff8a':'#4db8ff'};border-radius:10px"></div>
+        </div>
+        ${itemNames.length ? `<div style="font-size:9px;color:#888">実施：${itemNames.join('・')}</div>` : ''}
+      </div>
+    `;
+  }).join('');
 }
 
 // 「TRAINING MENU」から選べる自主トレのうち、これまで一度も記録がないものを一覧化する
@@ -2451,7 +2724,7 @@ function renderUnusedMenusHTML(){
     if (!grouped[t.cat]) grouped[t.cat] = [];
     grouped[t.cat].push(t);
   });
-  const catNames = { batting:'🏏バット', physical:'⚡フィジカル', throwing:'⚾投球', defense:'🧤守備', recovery:'💆回復', travel:'🌺旅先' };
+  const catNames = { batting:'🏏バット', physical:'⚡フィジカル', throwing:'⚾投球', defense:'🧤守備', agility:'🪜アジリティ', recovery:'💆回復', travel:'🌺旅先' };
 
   return Object.entries(grouped).map(([cat, items])=>`
     <div style="margin-bottom:8px">
@@ -2531,13 +2804,102 @@ function doTraining(t, dateKey){
   if(t.cat==='recovery') state.recoveryCnt=(state.recoveryCnt||0)+1;
   if(t.highLoad) state.highLoadDone[targetKey]=true;
 
-  // 何をやっても継続日数（streak）の対象。継続系メニュー(CONTINUOUS_IDS)はXPコンボ倍率も追加でつく。
-  const comboMult = updateStreakOnRecord(targetKey);
-  const finalMult = CONTINUOUS_IDS.has(t.id) ? comboMult : 1;
+  // 全体の継続日数（streak/growth）は「バッティング・守備・回復」のいずれかを実施した場合のみ更新
+  const isKeyCategory = ['batting','defense','recovery','agility'].includes(t.cat);
+  if (isKeyCategory) {
+    updateStreakOnRecord(targetKey);       // 全体
+    updateCategoryStreak(t.cat, targetKey); // カテゴリ別（バッティング／守備／回復）
+  }
+
+  // 週間頻度チャレンジ（フィジカル・体幹パワー・投球強化）の更新
+  const freqResult = updateFrequencyChallenge(t.id, targetKey);
+
+  // 「今週の目標」関連ボーナス（バッティング・守備・フィジカル系、1日1回）
+  const gotFocusBonus = tryAwardFocusGoalBonus(targetKey, t.cat);
+
+  // XPコンボ倍率は継続系メニュー(CONTINUOUS_IDS)なら、その時点のstreak値から計算（従来通り）
+  const finalMult = CONTINUOUS_IDS.has(t.id) ? getComboMultiplier() : 1;
   addXP(Math.round(t.xp*finalMult),t.statBonus,targetKey);
   // ログに記録（振り返り用）
   logTrainingEntry(targetKey, t);
-  closeModal(); renderAchievements(); renderGrowth(); renderLog();
+  closeModal(); renderAchievements(); renderGrowth(); renderLog(); renderFrequencyChallenges(); renderFocusGoal();
+
+  // 頻度チャレンジを新たに達成した場合は、ボーナスXP＋レベルアップ風のお祝い演出
+  if (freqResult && freqResult.achieved) {
+    addXP(30, {}, targetKey);
+    setTimeout(()=>{
+      document.getElementById('luSubText').textContent = `${freqResult.group.icon} ${freqResult.group.name} 週${freqResult.group.target}回達成！`;
+      document.getElementById('levelUpBanner').classList.add('show');
+    }, 300);
+  } else if (gotFocusBonus) {
+    setTimeout(()=>{
+      document.getElementById('luSubText').textContent = `⭐今週の目標に向けてがんばったね！ボーナスXPゲット！`;
+      document.getElementById('levelUpBanner').classList.add('show');
+    }, 300);
+  }
+}
+
+// 週間頻度チャレンジ：実施したtraining idが対象グループに属していれば、その週の記録を更新する
+// 達成条件：グループ内のどれでもよいので「日数」で週target回に到達すること（1日に複数種目やっても1カウント）
+function updateFrequencyChallenge(trainingId, dateKey){
+  const group = findFrequencyGroupForTraining(trainingId);
+  if (!group) return null;
+
+  const weekStart = getWeekStartKey(new Date(dateKey));
+  let data = state.frequencyChallenges[group.id];
+
+  // 週が変わっていれば（または初回なら）リセット
+  if (!data || data.weekStart !== weekStart) {
+    data = { weekStart, days: [], items: {} };
+    state.frequencyChallenges[group.id] = data;
+  }
+
+  const wasAlreadyAchieved = data.days.length >= group.target;
+
+  // 実施した種目名を記録（「何種目やったか」の表示用）
+  data.items[trainingId] = true;
+  // その日がまだdaysに含まれていなければ追加（1日1カウントのルール）
+  if (!data.days.includes(dateKey)) {
+    data.days.push(dateKey);
+  }
+
+  const isNowAchieved = data.days.length >= group.target;
+  return { achieved: (isNowAchieved && !wasAlreadyAchieved), group };
+}
+
+// ===== 今週の目標：関連ボーナスXP（1日1回まで） =====
+// category: 'batting'/'defense'/'physical'/'recovery'等。対象カテゴリかつ当日未受給ならボーナスXPを付与する
+function tryAwardFocusGoalBonus(dateKey, category){
+  const goal = getActiveFocusGoal(dateKey);
+  if (!goal) return false;
+  if (!goal.bonusCategories.includes(category)) return false;
+  if (state.focusGoalBonusDates[dateKey]) return false; // 今日はすでにもらった
+
+  state.focusGoalBonusDates[dateKey] = true;
+  addXP(goal.bonusXP, {}, dateKey);
+  return true;
+}
+
+// 「今週の目標」ボードの表示（該当期間のみ表示、それ以外は非表示）
+function renderFocusGoal(){
+  const box = document.getElementById('focusGoalBox');
+  if (!box) return;
+  const goal = getActiveFocusGoal(todayDateKey());
+  if (!goal) { box.innerHTML = ''; box.style.display = 'none'; return; }
+
+  box.style.display = 'block';
+  const gotBonusToday = !!state.focusGoalBonusDates[todayDateKey()];
+  box.innerHTML = `
+    <div style="background:linear-gradient(135deg, rgba(255,77,109,0.1), rgba(255,180,0,0.08));border:1px solid rgba(255,77,109,0.4);border-radius:12px;padding:14px;margin:0 12px 16px">
+      <div style="font-size:12px;font-weight:700;color:#ff8a9d;margin-bottom:8px">⭐ ${goal.title}</div>
+      <div>
+        ${goal.goals.map(g=>`<div style="font-size:12px;color:#eee;padding:4px 0;line-height:1.5">${g.icon} ${g.text}</div>`).join('')}
+      </div>
+      <div style="font-size:10px;color:${gotBonusToday?'#8aff8a':'#aaa'};margin-top:8px">
+        ${gotBonusToday ? '✅ 今日のボーナスXP獲得済み！' : '💡 関連するトレーニング（バット・守備・フィジカル系）で今日のボーナスXPをゲットしよう'}
+      </div>
+    </div>
+  `;
 }
 
 // ===== 実施ログ記録（振り返り機能用） =====
@@ -2580,6 +2942,57 @@ function updateStreakOnRecord(dateKey){
   return mult;
 }
 
+// XPコンボ倍率だけを取得する（state更新は行わない、CONTINUOUS_IDS対象メニューのXP計算専用）
+function getComboMultiplier(){
+  return 1 + Math.min(state.streak,50)*0.01;
+}
+
+// ===== バッティング・守備・回復 カテゴリ別の継続日数・成長度更新 =====
+function updateCategoryStreak(category, dateKey){
+  const todayKey = todayDateKey();
+  if (dateKey !== todayKey) return; // 過去日付への追記はカテゴリ別streakには影響させない
+
+  const catState = state.categoryStreaks[category];
+  if (!catState) return;
+  if (catState.lastDay === todayKey) return; // 今日すでに更新済みなら重複させない
+
+  const yesterday = new Date(todayKey);
+  yesterday.setDate(yesterday.getDate()-1);
+  const yKey = toDateKey(yesterday);
+
+  if (catState.lastDay === yKey) {
+    catState.streak += 1;
+  } else {
+    catState.streak = 1;
+  }
+  catState.lastDay = todayKey;
+  catState.growth = Math.round((catState.growth+1)*10)/10;
+}
+
+// 指定カテゴリの「サボり判定」。全体のcheckGrowthDecayと同じ考え方をカテゴリ別に適用する
+function checkCategoryGrowthDecay(category){
+  const catState = state.categoryStreaks[category];
+  if (!catState || !catState.lastDay) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayKey = toDateKey(today);
+
+  let cursor = new Date(catState.lastDay);
+  cursor.setDate(cursor.getDate()+1);
+  let missed = 0;
+  while (cursor < today) {
+    const cKey = toDateKey(cursor);
+    const didCategory = hasCategoryActivityOnDay(cKey, category);
+    if (!didCategory && !isRestDay(cursor)) {
+      missed++;
+    }
+    cursor.setDate(cursor.getDate()+1);
+  }
+  if (missed > 0) {
+    catState.growth = Math.max(1, Math.round((catState.growth - missed)*10)/10);
+    catState.streak = 0;
+  }
+}
+
 function updateStreakOnTrain(todayKey){
   return updateStreakOnRecord(todayKey);
 }
@@ -2599,13 +3012,14 @@ function checkGrowthDecay(){
   const todayKey=toDateKey(today);
 
   // 最後にやった日から今日までの「休養日でない未実施日」をカウント
+  // 判定基準：バッティング・守備・回復のいずれか1つでも実施していればOK
   let cursor=new Date(state.lastContinuousDay);
   cursor.setDate(cursor.getDate()+1);
   let missed=0;
   while(cursor < today){
     const cKey=toDateKey(cursor);
-    const didTrain=!!state.completedDays[cKey];
-    if(!didTrain && !isRestDay(cursor)){
+    const didKeyCategory=hasAnyKeyCategoryOnDay(cKey);
+    if(!didKeyCategory && !isRestDay(cursor)){
       missed++;
     }
     cursor.setDate(cursor.getDate()+1);
@@ -2616,6 +3030,10 @@ function checkGrowthDecay(){
     state.streak=0;
     save();
   }
+
+  // バッティング・守備・回復、それぞれのカテゴリ別サボり判定も行う
+  ['batting','defense','recovery','agility'].forEach(cat=>checkCategoryGrowthDecay(cat));
+  save();
 }
 
 function renderGrowth(){
@@ -2649,6 +3067,29 @@ function renderGrowth(){
       restBtn.style.color = '#8ab4ff';
     }
   }
+  renderCategoryTrackers();
+}
+
+// バッティング・守備・回復 3つの専用トラッカーを表示
+const CATEGORY_TRACKER_META = {
+  batting:  { icon:'🏏', label:'バッティング', color:'#ff4d6d' },
+  defense:  { icon:'🧤', label:'守備',         color:'#4db8ff' },
+  agility:  { icon:'🪜', label:'アジリティ',    color:'#ffb347' },
+  recovery: { icon:'💆', label:'回復',         color:'#8aff8a' },
+};
+function renderCategoryTrackers(){
+  const el = document.getElementById('categoryTrackers');
+  if (!el) return;
+  el.innerHTML = Object.entries(CATEGORY_TRACKER_META).map(([cat, meta])=>{
+    const catState = state.categoryStreaks[cat] || { streak:0, growth:100.0 };
+    return `
+      <div style="background:rgba(0,0,0,0.15);border:1px solid ${meta.color}55;border-radius:8px;padding:8px;text-align:center">
+        <div style="font-size:10px;color:${meta.color};font-weight:700;margin-bottom:2px">${meta.icon} ${meta.label}</div>
+        <div style="font-size:15px;font-weight:900;color:${meta.color}">${catState.growth.toFixed(1)}%</div>
+        <div style="font-size:10px;color:#ff8a4d;margin-top:2px">🔥${catState.streak}日</div>
+      </div>
+    `;
+  }).join('');
 }
 
 // 「今日は休む」をその場で宣言する
