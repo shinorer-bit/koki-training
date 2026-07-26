@@ -866,7 +866,7 @@ const CONTINUOUS_IDS = new Set([
 // 7月分・8月分ともにカレンダー実データに基づき、日付ごとに明示登録（正確性優先）
 const SEKI = {
   '2026-07-08':'9:15-14:30','2026-07-10':'9:15-11:30',
-  '2026-07-22':'9:15-14:15','2026-07-23':'9:30-13:00','2026-07-24':'9:15-11:30',
+  '2026-07-22':'9:15-14:15','2026-07-23':'9:30-13:00',
   '2026-07-31':'8:45-13:00',
   '2026-08-05':'9:15-14:15','2026-08-06':'9:30-13:00',
   '2026-08-10':'8:45-13:00',
@@ -972,7 +972,7 @@ const KAWAKAMI_OFF = new Set(['2026-08-11']);
 
 // LITALICO（実データに基づき時間統一）
 const LITALICO_DAYS = new Set([
-  '2026-07-10','2026-07-24','2026-07-31',
+  '2026-07-10','2026-07-31',
   '2026-08-07','2026-08-21','2026-08-28',
 ]);
 
@@ -1022,6 +1022,7 @@ function mkLesson(id, label, isPhysical, activities){
 // 運動系レッスンの「実施内容」選択肢プリセット
 const ACTIVITY_PRESETS = {
   kawakami: ['素振り','トスバッティング','シャトル打ち','守備（ゴロ捌き）','守備（送球）','ピッチング','①スイング確認（軸回転・左膝締める）','②守備（目線一定・回り込み）','③変化球（カーブ・チェンジアップ）'],
+  'morning-practice': ['素振り','シャドウピッチング','フィジカル','ストレッチ'],
   kyasuku:  ['バランス＆リズム（コーディネーション）','切り返し＆方向転換（アジリティ）','ダッシュ＆トップスピード（スピード）','スタートダッシュ（クイックネス）','測定会'],
   ryunosuke:['素振り','トスバッティング','シャトル打ち','①スイング確認（軸回転・左膝締める）'],
   swimming: ['個人メドレー','クロール','背泳ぎ','平泳ぎ','バタフライ','基礎練習'],
@@ -1049,6 +1050,8 @@ const ACTIVITY_STAT_MAP = {
   'キャッチボール': {thr:2}, 'ペッパー': {bat:1,thr:1,men:1},
   // チーム練習・試合
   '試合出場': {bat:1,thr:1,run:1,stam:1,men:2}, 'ダッシュ': {run:2}, 'ランニング': {stam:2}, 'ベンチ・応援': {men:2},
+  // 朝練専用項目
+  'シャドウピッチング': {thr:2}, 'ストレッチ': {stam:3},
 
   // ===== この夏のテーマ に沿った意識ポイント項目（①〜④は優先順位に対応） =====
   '①スイング確認（軸回転・左膝締める）': {bat:3,men:1},
@@ -1060,7 +1063,6 @@ const ACTIVITY_STAT_MAP = {
   'ティーバッティング': {bat:2},
   'バント練習': {bat:1,men:1},
   'ゴロ捌き': {thr:2},
-  'シャドウピッチング': {thr:2},
   '守備練習': {thr:2},
   '走塁練習': {run:2},
   'ラダー': {run:2},
@@ -1092,7 +1094,7 @@ const ACTIVITY_CATEGORY_MAP = {
   '守備（ゴロ捌き）':'defense', '守備（送球）':'defense', '守備':'defense',
   '②守備（目線一定・回り込み）':'defense', 'ゴロ捌き':'defense', '守備練習':'defense', 'キャッチボール':'defense',
   // 回復系
-  'リカバリー':'recovery',
+  'リカバリー':'recovery', 'ストレッチ':'recovery',
   // フィジカル系（今週の目標ボーナス対象にも使用）
   'フィジカル':'physical',
   'バランス＆リズム（コーディネーション）':'physical',
@@ -1165,7 +1167,7 @@ function getDayDef(date) {
   const programmingL = PROGRAMMING_DAYS.has(key) ? [mkLesson('programming','💻 プログラミング教室 19:10-20:00（移動込18:55-20:15目安）', false)] : [];
   const isSwimmingDay = !SWIMMING_OFF.has(key) && (SWIMMING_DAYS.has(key) || dow===4);
   const swimmingL = isSwimmingDay ? [mkLesson('swimming','🏊 こうきスイミング 17:40-18:40（17:30集合、移動込16:55-19:25目安）', true, ACTIVITY_PRESETS.swimming)] : [];
-  const morningPracticeL = isMorningPracticeWed(date) ? [mkLesson('morning-practice','🏏 川上先生朝練 6:45-7:30', true, ACTIVITY_PRESETS.kawakami)] : [];
+  const morningPracticeL = isMorningPracticeWed(date) ? [mkLesson('morning-practice','🏏 川上先生朝練 6:45-7:30', true, ACTIVITY_PRESETS['morning-practice'])] : [];
 
   if (HOLIDAYS[key]) {
     return { lessons:[mkLesson('holiday','🎌 祝日：'+HOLIDAYS[key], false)], load:'rest', selfOk:true,
