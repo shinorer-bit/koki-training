@@ -1904,10 +1904,21 @@ function renderLog(){
   const entriesEl = document.getElementById('logEntries');
   if(!tabsEl || !entriesEl) return;
 
-  // 直近10日分のタブを生成（今日を含む）
+  // 開始日(START_DATE)から今日までの全日付をタブ表示（今日を含む、新しい日付が左）
+  // ※以前は「直近10日分」までの制限があったが、しばらく開いていなかった期間の記録も
+  //   さかのぼって確認・入力できるよう、夏休み開始日まで全期間を表示するようにしている。
   tabsEl.innerHTML = '';
   const today = new Date(); today.setHours(0,0,0,0);
-  for(let i=0;i<10;i++){
+  const startKey = toDateKey(START_DATE);
+  let daysSinceStart = 0;
+  {
+    let cursor = new Date(today);
+    while (toDateKey(cursor) !== startKey && daysSinceStart < 120) {
+      daysSinceStart++;
+      cursor.setDate(cursor.getDate()-1);
+    }
+  }
+  for(let i=0;i<=daysSinceStart;i++){
     const d = new Date(today); d.setDate(d.getDate()-i);
     const dKey = toDateKey(d);
     const hasLog = state.trainingLog && state.trainingLog[dKey] && state.trainingLog[dKey].length>0;
