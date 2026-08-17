@@ -2137,10 +2137,22 @@ function openTrainingModal(t) {
     return `<div class="modal-stat"><div class="ms-val">+${v}</div><div class="ms-lbl">${n[k]||k}</div></div>`;
   }).join('');
 
-  // 過去7日分の日付選択肢を生成（今日がデフォルト）
+  // 開始日(START_DATE)から今日までの全日付を選択肢に生成（今日がデフォルト）
+  // ※以前は「過去7日分」までの制限があったが、しばらく記録できていなかった期間もさかのぼって
+  //   入力できるよう、夏休み開始日まで全期間を選べるようにしている。
+  // ※日数差はタイムゾーンの影響を受けやすいため、日付キー文字列の比較で安全に計算する。
   const today = new Date(); today.setHours(0,0,0,0);
+  const startKey = toDateKey(START_DATE);
+  let daysSinceStart = 0;
+  {
+    let cursor = new Date(today);
+    while (toDateKey(cursor) !== startKey && daysSinceStart < 120) {
+      daysSinceStart++;
+      cursor.setDate(cursor.getDate()-1);
+    }
+  }
   let dateOptionsHTML = '';
-  for(let i=0;i<7;i++){
+  for(let i=0;i<=daysSinceStart;i++){
     const d = new Date(today); d.setDate(d.getDate()-i);
     const dKey = toDateKey(d);
     const label = i===0 ? `今日 (${d.getMonth()+1}/${d.getDate()})` : `${d.getMonth()+1}/${d.getDate()}（${['日','月','火','水','木','金','土'][d.getDay()]}）`;
