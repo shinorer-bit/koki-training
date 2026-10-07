@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="こうきトレ">
+<meta name="theme-color" content="#0c1626">
+<title>光揮トレーニング v0.1</title>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: night-game scoreboard. One column, phone first, fixed bottom tab bar. Single dark look by choice. */
+:root{
+  color-scheme: dark;
+  --ground:#0c1626;      /* night sky over the stadium */
+  --panel:#15233a;       /* scoreboard panel */
+  --panel-2:#1c2d4a;
+  --line:rgba(236,230,214,0.10);
+  --chalk:#efe9db;       /* chalk line white */
+  --muted:#9aa8bd;
+  --gold:#e0b84a;        /* scoreboard lamp */
+  --gold-ink:#1a1405;
+  --ok:#6fcf97; --warn:#f2a35a; --bad:#e86a5f;
+  --t1:#b996e6; --t2:#f2c94c; --t3:#6fcf97; --t4:#ef8e8e; --t5:#f2a35a; --t6:#7fd6f2; --t7:#8fbbe6; --t8:#5fd3b3;
+  --f-display:"Dela Gothic One","Zen Kaku Gothic New","Hiragino Sans",sans-serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --f-num:"Barlow Condensed","Zen Kaku Gothic New",system-ui,sans-serif;
+  --r:14px;
+}
+html,body{height:100%}
+body{background:var(--ground);color:var(--chalk);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%}
+*{box-sizing:border-box}
+button,input{font-family:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.app{max-width:480px;margin:0 auto;padding-inline:16px;padding-block:18px 110px;display:flex;flex-direction:column;gap:16px}
+h1,h2{margin:0;text-wrap:balance}
+h1{font-family:var(--f-display);font-weight:400;font-size:24px;letter-spacing:.02em;line-height:1.3}
+h2{font-size:15px;font-weight:900}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px}
+.back{background:none;border:0;color:var(--muted);font-weight:700;font-size:14px;padding:6px 0;min-height:40px}
+.step{font-size:12px;font-weight:900;color:var(--gold);letter-spacing:.06em}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.label{font-size:13px;font-weight:900;color:var(--muted);letter-spacing:.04em}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1;min-width:72px;min-height:48px;border-radius:12px;background:var(--panel);border:1.5px solid var(--line);font-weight:900;font-size:15px}
+.seg button[aria-pressed="true"]{background:rgba(224,184,74,.16);border-color:var(--gold);color:var(--gold)}
+.btn{display:block;width:100%;min-height:52px;border:0;border-radius:999px;background:var(--gold);color:var(--gold-ink);font-weight:900;font-size:17px}
+.btn[disabled]{opacity:.35}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--chalk);font-size:15px}
+.note{font-size:13px;line-height:1.6;color:var(--chalk);background:var(--panel-2);border-radius:12px;padding:10px 12px}
+.hint{display:flex;gap:8px;align-items:center;border:1px solid rgba(224,184,74,.35);background:rgba(224,184,74,.08);color:var(--gold);border-radius:12px;padding:9px 12px;font-weight:700;font-size:14px}
+.check{display:flex;align-items:center;gap:12px;width:100%;text-align:left;min-height:54px;padding:10px 12px;border-radius:12px;background:var(--panel);border:1.5px solid var(--line)}
+.check[aria-pressed="true"]{background:rgba(224,184,74,.10);border-color:rgba(224,184,74,.55)}
+.box{width:24px;height:24px;flex:none;border-radius:7px;border:2px solid rgba(239,233,219,.35);display:grid;place-items:center}
+.check[aria-pressed="true"] .box{background:var(--gold);border-color:var(--gold)}
+.check .t{font-weight:800;font-size:15px}
+.check .s{font-size:12.5px;color:var(--muted)}
+.tag{font-size:11.5px;font-weight:900;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.tag.gold{background:var(--gold);color:var(--gold-ink)}
+.tag.blue{background:rgba(143,187,230,.16);color:var(--t7)}
+.reason{font-size:12.5px;color:var(--gold);margin-top:2px}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.bar{height:8px;border-radius:999px;background:rgba(239,233,219,.08);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:999px;background:var(--gold)}
+.stepper{display:flex;align-items:center;gap:12px}
+.stepper button{width:44px;height:44px;border-radius:12px;border:0;background:var(--panel-2);font-size:20px;font-weight:900}
+.stepper output{min-width:64px;text-align:center;font-size:26px;font-weight:700}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.chip{min-height:64px;border-radius:12px;background:var(--panel);border:1px solid var(--line);font-weight:800;font-size:13px;line-height:1.3;padding:8px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.chip[disabled]{opacity:.35}
+.block{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 8px 8px 12px}
+.block .mins{min-width:62px;min-height:44px;border:0;border-radius:10px;background:var(--panel-2);font-weight:900}
+.icon-btn{width:40px;height:44px;border:0;background:none;color:var(--muted);font-size:16px}
+.tl{display:flex;flex-direction:column}
+.tl-row{display:flex;gap:12px;align-items:center;padding:9px 0 9px 12px;border-left:3px solid var(--line)}
+.tl-row .time{width:96px;flex:none;font-size:13px;color:var(--muted)}
+.tl-row.lesson{border-left-color:var(--t7)}
+.tl-row.move{border-left-color:rgba(143,187,230,.4)}
+.tl-row.off .what{text-decoration:line-through;color:var(--muted)}
+.cancel{min-height:36px;border-radius:999px;padding:0 12px;font-size:12.5px;font-weight:900;background:rgba(232,106,95,.12);border:1px solid rgba(232,106,95,.45);color:var(--bad)}
+.tl-row.off .cancel{background:transparent;border-color:var(--line);color:var(--muted)}
+.big{font-family:var(--f-num);font-weight:700;font-size:56px;line-height:1;color:var(--gold);font-variant-numeric:tabular-nums}
+.lv{width:66px;height:66px;flex:none;border-radius:50%;border:3px solid var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.lv small{font-size:11px;color:var(--gold);font-weight:900}
+.lv b{font-family:var(--f-num);font-size:30px;color:var(--gold)}
+.badge{display:inline-block;font-size:11.5px;font-weight:900;background:var(--gold);color:var(--gold-ink);border-radius:999px;padding:2px 9px}
+.badge.alt{background:var(--panel-2);color:var(--chalk);border:1px solid var(--line)}
+.now{display:block;width:100%;text-align:left;border:0;border-radius:18px;padding:18px;color:var(--gold-ink)}
+.now .when{font-size:13px;font-weight:900;opacity:.75}
+.now .what{font-family:var(--f-display);font-size:24px;margin-top:2px}
+.now .desc{font-size:14px;font-weight:700;margin-top:6px;opacity:.85}
+.now .go{display:inline-block;margin-top:12px;background:var(--ground);color:var(--chalk);border-radius:999px;padding:8px 16px;font-weight:900;font-size:14px}
+.stats3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-family:var(--f-num);font-size:28px;line-height:1.1;color:var(--chalk)}
+.stat span{font-size:12px;color:var(--muted)}
+.theme-row{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.mini{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.mini div{background:var(--panel);border-radius:10px;padding:7px 8px;display:flex;flex-direction:column;gap:4px}
+.mini .n{font-size:11.5px;font-weight:800;color:var(--muted)}
+.tabbar{position:fixed;left:0;right:0;bottom:0;padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px));background:rgba(12,22,38,.96);border-top:1px solid var(--line);display:flex;justify-content:center}
+.tabbar nav{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;max-width:480px}
+.tabbar button{min-height:48px;border:0;border-radius:12px;background:none;color:var(--muted);font-weight:900;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.tabbar button[aria-current="page"]{color:var(--gold);background:rgba(224,184,74,.08)}
+[hidden]{display:none!important}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--gold);color:var(--gold-ink);font-weight:900;border-radius:999px;padding:10px 18px;font-size:15px;box-shadow:0 6px 24px rgba(0,0,0,.35);transition:opacity .3s, transform .3s;white-space:nowrap}
+.toast[hidden]{display:block!important;opacity:0;transform:translate(-50%,12px);pointer-events:none}
+.levelup{position:fixed;inset:0;background:rgba(6,12,22,.82);display:grid;place-items:center;padding:24px;z-index:10}
+.levelup .card{background:var(--panel);border:2px solid var(--gold);border-radius:20px;padding:28px 22px;text-align:center;max-width:340px;width:100%}
+.levelup .card .big{font-size:88px}
+input[type=number],input[type=date],input[type=text],input[type=url],textarea{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--ground);padding:8px 10px;font-size:16px}
+textarea{min-height:120px;font-family:ui-monospace,monospace;font-size:12px}
+.sep{height:1px;background:var(--line)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+
+<div id="app" class="app" aria-live="polite"></div>
+<div class="tabbar"><nav id="tabs" aria-label="メニュー"></nav></div>
+<div id="toast" class="toast" hidden></div>
+<div id="levelup" class="levelup" hidden></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- 基本データ ---------- */
+const KEY = 'koki-training-v01';
+const THEMES = [
+  {name:'① メンタル', short:'メンタル', color:'var(--t1)', how:'「今日がんばったこと」の記録、継続ボーナス（7日・30日・100日）'},
+  {name:'② 体力・持久力', short:'体力', color:'var(--t2)', how:'モビリティ、下半身・上半身・体幹トレ、スイミング'},
+  {name:'③ 走力・俊敏性', short:'走力', color:'var(--t3)', how:'キャスク、ムーブメントスキル、プライオ、モーターコントロール、プレパレーション、切り返しトレ、ステップ台'},
+  {name:'④ バッティング', short:'打撃', color:'var(--t4)', how:'素振り、置きティー、龍之介コーチ、川上コーチ（バッティング）'},
+  {name:'⑤ 守備・送球', short:'守備', color:'var(--t5)', how:'守備練習、シャドウピッチング、メディシンボール、うつ伏せスイミング、川上コーチ（守備）'},
+  {name:'⑥ 大会・実戦経験', short:'実戦', color:'var(--t6)', how:'チーム練習（30）・試合（40）'},
+  {name:'⑦ 人として成長', short:'人間力', color:'var(--t7)', how:'（試用版のあとで追加）コーチの言葉の記録、チームのためにしたこと'},
+  {name:'⑧ 生活習慣', short:'生活', color:'var(--t8)', how:'朝のチェック、体重、早寝（21時で満点）、計画を立てる、決めたとおりにやる、夜のふり返り'},
+];
+const MENUS = [
+  {id:'mobility', g:'proto', label:'モビリティ', sub:'PMA または 4Dストレッチ', th:1, mins:[10,15,20]},
+  {id:'motor', g:'proto', label:'モーターコントロール', sub:'', th:2, mins:[10,15]},
+  {id:'prep', g:'proto', label:'ムーブメントプレパレーション', sub:'', th:2, mins:[10,15]},
+  {id:'plyo', g:'proto', label:'プライオ', sub:'Ankle Hop・Countermovement Jump など', th:2, mins:[10,15]},
+  {id:'movement', g:'proto', label:'ムーブメントスキル', sub:'10mダッシュなど（直線加速）', th:2, mins:[10,15,20]},
+  {id:'medball', g:'proto', label:'メディシンボール', sub:'＋プライオボール（壁当て）', th:4, mins:[10,15,20]},
+  {id:'suburi', g:'bat', label:'素振り', sub:'軽→重→試合用', th:3, mins:[10,15,20]},
+  {id:'okiTee', g:'bat', label:'置きティー', sub:'フォーム確認', th:3, mins:[10,15,20]},
+  {id:'kaeshi', g:'any', label:'キャスク切り返しトレ', sub:'Jジャンプ・クラブムーブメント・大コーンタッチ', th:2},
+  {id:'step', g:'any', label:'ステップ台トレーニング', sub:'', th:2},
+  {id:'swimback', g:'any', label:'うつ伏せスイミング背筋トレ', sub:'平泳ぎ・クロール 各30回', th:4},
+  {id:'shubi', g:'any', label:'守備練習', sub:'', th:4},
+  {id:'shadow', g:'any', label:'シャドウピッチング', sub:'', th:4},
+  {id:'lower', g:'kin', label:'下半身トレーニング', sub:'月・水がおすすめ', th:1},
+  {id:'upper', g:'kin', label:'上半身トレーニング', sub:'火・木がおすすめ', th:1},
+  {id:'core', g:'kin', label:'体幹トレーニング', sub:'毎日OK', th:1},
+];
+const MENU = Object.fromEntries(MENUS.map(m=>[m.id,m]));
+const GROUPS = [
+  {g:'proto', name:'体づくりプロトコル'},
+  {g:'bat', name:'バッティング'},
+  {g:'any', name:'いつでもOK'},
+  {g:'kin', name:'筋トレ'},
+];
+const GANBATTA = [
+  {id:'train', pre:'遊びたい・休みたい気持ちに勝って', main:'トレーニングをやった'},
+  {id:'eat', pre:'おなかいっぱいでも', main:'もう少しがんばって食べた'},
+  {id:'care', pre:'めんどうでも', main:'体のケアをした'},
+  {id:'sleep', pre:'もっと起きていたかったけど', main:'決めた時間に寝た'},
+  {id:'zenryoku', pre:'練習や試合で', main:'最後まで全力でやりきった'},
+];
+const m = (h,mi)=>h*60+(mi||0);
+/* 曜日ごとの固定予定（Koki Scheduleカレンダーとモデルタイムテーブルより。実データ接続までは固定） */
+const WEEK = {
+  1:{home:m(15,45), items:[
+    {id:'ryu', name:'龍之介コーチ', place:'自宅', s:m(16), e:m(17), to:0, back:0, xp:{3:20}},
+    {id:'casq', name:'キャスク', place:'東陽町', s:m(18,30), e:m(19,30), to:60, back:45, xp:{2:20}},
+  ]},
+  2:{home:m(15,45), items:[
+    {id:'okada', name:'家庭教師（岡田先生）', place:'自宅', s:m(16), e:m(17,30), to:0, back:0},
+    {id:'kawakami', name:'川上コーチ', place:'東五反田', s:m(18,30), e:m(19), to:8, back:7, choice:'bat'},
+    {id:'speak', name:'SpeakSeed', place:'オンライン', s:m(20), e:m(20,50), to:0, back:0},
+  ]},
+  3:{home:m(15,45), items:[
+    {id:'prog', name:'プログラミング教室', place:'白金台', s:m(19,10), e:m(20), to:5, back:5},
+  ]},
+  4:{home:m(15,45), items:[
+    {id:'swim', name:'こうきスイミング', place:'南青山', s:m(17,40), e:m(18,40), to:35, back:35, xp:{1:20}},
+  ]},
+  5:{home:m(19,15), from:m(15,15), items:[
+    {id:'litalico', name:'LITALICO（学校から直行）', place:'渋谷', s:m(15,50), e:m(17,20), to:35, back:0},
+    {id:'move', name:'移動（渋谷→東五反田）', place:'', s:m(17,20), e:m(18,30), to:0, back:0, fixed:true},
+    {id:'kawakami', name:'川上コーチ', place:'東五反田', s:m(18,30), e:m(19), to:0, back:15, choice:'def'},
+  ]},
+  6:{weekend:true, items:[{id:'team', name:'北砂リトル 練習・試合', place:'', s:m(8), e:m(17,30), to:0, back:0, fixed:true}]},
+  0:{weekend:true, items:[{id:'team', name:'北砂リトル 練習・試合', place:'', s:m(8), e:m(17,30), to:0, back:0, fixed:true}]},
+};
+const BED = m(21);
+const DINNER = 60;
+const DAY_HINT = {1:'Englishの宿題が出るかも', 2:'Mathの宿題が出るかも', 3:'Englishの宿題が出るかも', 4:'Mathの宿題が出るかも'};
+const DEFAULT_TESTS = [
+  {date:'2026-10-09', subj:'国語', label:'単元テスト「漢字の成り立ち」（日にちは先生に確認）'},
+  {date:'2026-10-19', subj:'国語', label:'漢字テスト ドリル32 ①〜⑳'},
+  {date:'2026-10-26', subj:'国語', label:'漢字テスト ドリル36 ①〜⑳'},
+  {date:'2026-11-02', subj:'国語', label:'漢字テスト ドリル42 ①〜⑳'},
+  {date:'2026-11-09', subj:'国語', label:'かん字まとめテスト'},
+  {date:'2026-11-16', subj:'国語', label:'漢字テスト ドリル48 ①〜⑩'},
+  {date:'2026-11-26', subj:'国語', label:'漢字テスト ドリル48 ⑪〜⑳'},
+];
+const WEEK_GOAL = 500, WEEK_GREAT = 700;
+
+/* ---------- 保存 ---------- */
+let S;
+function freshState(){ return {v:2, days:{}, tests:[], offset:0, seen:{}}; }
+function load(){
+  try{ const raw = localStorage.getItem(KEY); if(raw){ const o = JSON.parse(raw); if(o && o.days) return o; } }catch(e){}
+  return freshState();
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+S = load();
+if((S.v||1) < 2){ S.tests = (S.tests||[]).filter(t=>!DEFAULT_TESTS.some(d=>d.date===t.date && d.label===t.label)); S.v = 2; save(); }
+
+/* ---------- スプレッドシート「見通し」の読み込み（F-1：読むだけ。記録は端末に保存のまま） ---------- */
+const SHEET_CSV = '';   // 「ウェブに公開」した見通しシートのCSVのURL（おうちの人画面でも設定できる）
+function sheetUrl(){ return (S.sheetUrl||'').trim() || SHEET_CSV; }
+function parseCSV(t){
+  const rows = []; let row = [], f = '', q = false;
+  for(let i=0;i<t.length;i++){ const c = t[i];
+    if(q){ if(c==='"'){ if(t[i+1]==='"'){ f+='"'; i++; } else q = false; } else f += c; }
+    else if(c==='"') q = true;
+    else if(c===','){ row.push(f); f=''; }
+    else if(c==='\n'){ row.push(f); rows.push(row); row=[]; f=''; }
+    else if(c!=='\r') f += c;
+  }
+  if(f!=='' || row.length){ row.push(f); rows.push(row); }
+  return rows;
+}
+function toDk(v){ const x = String(v||'').trim().match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/); return x ? x[1]+'-'+x[2].padStart(2,'0')+'-'+x[3].padStart(2,'0') : ''; }
+function rowsToItems(rows){
+  if(!rows.length) throw new Error('シートが空です');
+  const h = rows[0].map(x=>x.trim()); const ix = n=>h.indexOf(n);
+  const iD=ix('日付'), iE=ix('終了日'), iS=ix('教科'), iK=ix('種別'), iC=ix('内容'), iM=ix('状態・メモ');
+  if(iD<0 || iC<0) throw new Error('「日付」「内容」の列が見つかりません');
+  const g = (r,i)=> i<0 ? '' : String(r[i]||'').trim();
+  return rows.slice(1).map(r=>({date:toDk(g(r,iD)), end:toDk(g(r,iE)), subj:g(r,iS), kind:g(r,iK), label:g(r,iC), memo:g(r,iM), src:'sheet'})).filter(x=>x.date && x.label);
+}
+let sheetBusy = false;
+async function loadSheet(force){
+  const url = sheetUrl(); if(!url || sheetBusy) return;
+  if(!force && S.sheet && S.sheet.at && Date.now()-S.sheet.at < 10*60*1000) return;
+  sheetBusy = true;
+  try{
+    const ctl = new AbortController(); const tm = setTimeout(()=>ctl.abort(), 10000);
+    const res = await fetch(url, {cache:'no-store', signal:ctl.signal}); clearTimeout(tm);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const items = rowsToItems(parseCSV(await res.text()));
+    S.sheet = {at:Date.now(), items, err:null};
+    const cu = calUrl();
+    if(cu){
+      try{
+        const ctl2 = new AbortController(); const tm2 = setTimeout(()=>ctl2.abort(), 10000);
+        const r2 = await fetch(cu, {cache:'no-store', signal:ctl2.signal}); clearTimeout(tm2);
+        if(!r2.ok) throw new Error('HTTP '+r2.status);
+        const c = rowsToCal(parseCSV(await r2.text())); storeCal(c);
+        S.calInfo = {at:Date.now(), from:c.from, to:c.to, err:null};
+      }catch(e2){ S.calInfo = Object.assign({}, S.calInfo||{}, {err:(e2 && e2.name==='AbortError') ? '時間切れ（電波を確認）' : String(e2 && e2.message || e2)}); }
+    }
+    save();
+  }catch(e){
+    S.sheet = Object.assign({items:null, at:0}, S.sheet||{}, {err:(e && e.name==='AbortError') ? '時間切れ（電波を確認）' : String(e && e.message || e), errAt:Date.now()}); save();
+  }finally{ sheetBusy = false; if(typeof render==='function' && el) render(); }
+}
+function isTest(x){ return /テスト|試験/.test(x.kind||'テスト'); }
+function isDone(x){ return /^(実施済み|対応済み)/.test(x.memo||''); }
+function allItems(){
+  const base = (S.sheet && S.sheet.items) ? S.sheet.items : DEFAULT_TESTS.map(t=>Object.assign({kind:'テスト', src:'default'}, t));
+  return base.concat((S.tests||[]).map(t=>Object.assign({kind:'テスト'}, t, {src:'manual'})));
+}
+function lastDay(x){ return x.end || x.date; }
+
+/* ---------- Googleカレンダー（Koki Schedule）→「カレンダー」シート → アプリ ---------- */
+const CAL_GID = 4;   // スプレッドシート内「カレンダー」シートのID
+function calUrl(){ const u = sheetUrl(); if(!u) return ''; return /[?&]gid=\d+/.test(u) ? u.replace(/([?&]gid=)\d+/, '$1'+CAL_GID) : ''; }
+function toMin(v){ const x = String(v||'').trim().match(/^(\d{1,2}):(\d{2})/); return x ? (+x[1])*60 + (+x[2]) : null; }
+function rowsToCal(rows){
+  if(!rows.length) throw new Error('カレンダーシートが空です');
+  const h = rows[0].map(x=>x.trim()); const ix = n=>h.indexOf(n);
+  const iD=ix('日付'), iS=ix('開始'), iE=ix('終了'), iA=ix('終日'), iT=ix('タイトル');
+  if(iD<0 || iT<0) throw new Error('カレンダーシートの列が見つかりません');
+  let from='', to=''; const days = {};
+  rows.slice(1).forEach(r=>{
+    const title = String(r[iT]||'').trim(); if(!title) return;
+    if(title==='#範囲'){ from = toDk(r[iD]); to = toDk(r[iE]); return; }
+    const k = toDk(r[iD]); if(!k) return;
+    const allday = String(r[iA]||'').trim()!=='' ;
+    (days[k] = days[k]||[]).push({allday, s:toMin(r[iS]), e:toMin(r[iE]), title});
+  });
+  if(!from || !to) throw new Error('カレンダーの範囲がわかりません');
+  return {from, to, days};
+}
+function storeCal(c){
+  S.calDays = S.calDays||{};
+  for(let d = parseDk(c.from); dk(d) <= c.to; d = addDays(d,1)){ const k = dk(d); S.calDays[k] = c.days[k]||[]; }
+  // 古い日（45日より前）は消して容量を節約
+  const old = dk(addDays(today(), -45)); Object.keys(S.calDays).forEach(k=>{ if(k < old) delete S.calDays[k]; });
+}
+const SKIP_EV = /^【休み】|（休み）|^移動|自宅に帰る|へ行く|BD$|休校/;
+const KNOWN = [
+  [/キャスク/, {id:'casq', place:'東陽町', to:60, back:45, xp:{2:20}}],
+  [/龍之介/, {id:'ryu', place:'自宅', xp:{3:20}}],
+  [/川上/, {id:'kawakami', place:'東五反田', to:8, back:7}],
+  [/スイミング/, {id:'swim', place:'南青山', to:35, back:35, xp:{1:20}}],
+  [/【北砂】/, {id:'team', team:true, fixed:true}],
+  [/家庭教師/, {id:'okada', place:'自宅'}],
+  [/LITALICO/i, {id:'litalico', place:'渋谷', to:35, back:35}],
+  [/SpeakSeed/i, {id:'speak', place:'オンライン'}],
+  [/Debate/i, {id:'debate', place:'オンライン'}],
+  [/プログラミング/, {id:'prog', place:'白金台', to:5, back:5}],
+];
+function buildPlan(k, evs){
+  const w = parseDk(k).getDay();
+  const isOff = t=>/^【休み】|（休み）/.test(t);
+  const banners = evs.filter(e=>e.allday && !/BD$/.test(e.title) && !isOff(e.title)).map(e=>e.title);
+  const offs = evs.filter(e=>isOff(e.title)).map(e=>e.title.replace(/^【休み】/,''));
+  const seen = {};
+  const items = evs.filter(e=>!e.allday && e.s!=null && !SKIP_EV.test(e.title)).sort((a,b)=>a.s-b.s).map((e,i)=>{
+    const hit = KNOWN.find(([re])=>re.test(e.title));
+    const it = Object.assign({to:0, back:0}, hit ? hit[1] : {id:'ev'+i}, {name:e.title, s:e.s, e:(e.e!=null && e.e>e.s) ? e.e : e.s+60});
+    if(it.id==='kawakami') it.choice = w===5 ? 'def' : 'bat';
+    const base = it.id; if(seen[base]){ it.id = base+'_'+seen[base]; delete it.xp; delete it.choice; seen[base]++; } else seen[base] = 1;
+    return it;
+  });
+  const team = items.some(it=>it.team);
+  const off = w===0 || w===6 || banners.some(t=>/学校休み|Break|祝日|旅行/i.test(t));
+  const trip = banners.some(t=>/旅行/.test(t));
+  return {src:'cal', home: off ? m(9) : m(15,45), items, team, weekend:team, off, trip, banners, offs};
+}
+function dayPlan(k){
+  if(S.calDays && S.calDays[k]) return buildPlan(k, S.calDays[k]);
+  const w = parseDk(k).getDay(); const W = WEEK[w];
+  return Object.assign({src:'week', team:!!W.weekend, off:!!W.weekend, banners:[], offs:[]}, W);
+}
+
+/* ---------- 日付（日本時間のまま扱う。toISOStringは使わない） ---------- */
+function today(){ const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate() + (S.offset||0)); return d; }
+function dk(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseDk(k){ const [y,mo,da] = k.split('-').map(Number); return new Date(y,mo-1,da,12); }
+function addDays(d,n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+const WD = ['日','月','火','水','木','金','土'];
+function md(d){ return (d.getMonth()+1)+'/'+d.getDate()+'（'+WD[d.getDay()]+'）'; }
+function hhmm(mins){ return Math.floor(mins/60)+':'+String(mins%60).padStart(2,'0'); }
+function day(k){ if(!S.days[k]) S.days[k] = {}; return S.days[k]; }
+function todayKey(){ return dk(today()); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- XP計算（記録から毎回計算し直すので二重加算しない） ---------- */
+function dayXP(k, D){
+  const t = [0,0,0,0,0,0,0,0];
+  const d = parseDk(k), w = d.getDay();
+  const menus = D.menus||{};
+  Object.keys(menus).forEach(id=>{ if(menus[id] && MENU[id]) t[MENU[id].th] += 10; });
+  const plan = (D.plan||[]).filter(b=>MENU[b.id]);
+  if(D.planSaved) t[7] += 5;
+  if(plan.length && plan.every(b=>menus[b.id])) t[7] += 10;
+  const L = D.lessons||{};
+  (dayPlan(k).items||[]).forEach(it=>{
+    if(L[it.id] !== 'yes') return;
+    if(it.xp){ Object.entries(it.xp).forEach(([th,v])=>{ t[th] += v; }); }
+    if(it.choice){
+      const pick = (D.kawakami && (D.kawakami.bat||D.kawakami.def)) ? D.kawakami : {bat:it.choice==='bat', def:it.choice==='def'};
+      if(pick.bat && pick.def){ t[3]+=10; t[4]+=10; } else if(pick.bat){ t[3]+=20; } else { t[4]+=20; }
+    }
+  });
+  if(D.team==='practice') t[5] += 30;
+  if(D.team==='game') t[5] += 40;
+  const g = Object.values(D.ganbatta||{}).filter(Boolean).length;
+  t[0] += Math.min(g,5)*5;
+  if(D.morningDone) t[7] += 5;
+  if(D.weight) t[7] += 5;
+  if(D.sleep != null) t[7] += sleepStars(D.sleep)*5;
+  const mp = D.morningPlan && D.morningPlan.blocks || [];
+  if(mp.length && mp.every(b=>(D.morningChecks||{})[b.id])) t[7] += 10;
+  if(D.nightDone) t[7] += 5;
+  return t;
+}
+function sleepStars(mins){ return mins<=m(21)?3 : mins<=m(21,30)?2 : mins<=m(22)?1 : 0; }
+function active(D){ return !!(D && (D.rest || Object.values(D.menus||{}).some(Boolean) || Object.values(D.ganbatta||{}).some(Boolean))); }
+
+function summary(){
+  const keys = Object.keys(S.days).sort();
+  const themes = [0,0,0,0,0,0,0,0];
+  const tk = todayKey(), td = today();
+  const monday = addDays(td, -((td.getDay()+6)%7)); const mk = dk(monday);
+  let week = 0, todayXP = 0;
+  keys.forEach(k=>{
+    if(k > tk) return;
+    const t = dayXP(k, S.days[k]); const sum = t.reduce((a,b)=>a+b,0);
+    t.forEach((v,i)=>themes[i]+=v);
+    if(k >= mk) week += sum;
+    if(k === tk) todayXP = sum;
+  });
+  // 継続日数と節目ボーナス
+  let run = 0, prev = null; const reached = {7:false,30:false,100:false}; const bonusAt = {7:50,30:200,100:500};
+  let bonus = 0;
+  if(keys.length){
+    const first = parseDk(keys[0]);
+    for(let d = first; dk(d) <= tk; d = addDays(d,1)){
+      const k = dk(d);
+      if(active(S.days[k])) run++; else if(k !== tk) run = 0;
+      [7,30,100].forEach(n=>{ if(run>=n && !reached[n]){ reached[n]=true; bonus += bonusAt[n]; if(k>=mk) week += bonusAt[n]; } });
+    }
+  }
+  themes[0] += bonus;
+  const streak = active(S.days[tk]) ? run : (run); // 今日まだでも昨日までの継続を表示
+  const month = keys.filter(k=>k.slice(0,7)===tk.slice(0,7) && k<=tk && active(S.days[k])).length;
+  const total = themes.reduce((a,b)=>a+b,0);
+  return {themes, total, week, todayXP, streak, month, reached};
+}
+function lvFrom(x, base){ let n = 1; while(base*(n)*(n+1) <= x) n++; return n; }   // LVn → n+1 に必要な累計 base*n*(n+1)
+function lvInfo(x, base){ const n = lvFrom(x,base); const cur = base*(n-1)*n, nxt = base*n*(n+1); return {lv:n, pct:Math.round((x-cur)/(nxt-cur)*100), toNext:nxt-x}; }
+
+/* ---------- おすすめ ---------- */
+function weekDone(){
+  const td = today(); const monday = addDays(td, -((td.getDay()+6)%7));
+  const set = new Set();
+  for(let d = monday; dk(d) <= dk(td); d = addDays(d,1)){ const D = S.days[dk(d)]; if(D && D.menus) Object.keys(D.menus).forEach(id=>{ if(D.menus[id]) set.add(id); }); }
+  return set;
+}
+function recommend(){
+  const w = today().getDay(), done = weekDone(), recs = [];
+  recs.push(done.has('kaeshi') ? ['movement','切り返し・スピードはいちばん大事なテーマ'] : ['kaeshi','切り返し・スピードはいちばん大事なテーマ']);
+  if(w===1||w===3) recs.push(['lower','きょうは下半身の日（月・水がおすすめ）']);
+  else if(w===2||w===4) recs.push(['upper','きょうは上半身の日（火・木がおすすめ）']);
+  else recs.push(['core','体幹は毎日やってもOK']);
+  const notYet = ['plyo','prep','medball','movement','motor','mobility'].find(id=>!done.has(id) && !recs.some(r=>r[0]===id));
+  if(notYet) recs.push([notYet,'今週まだやっていないよ']);
+  return recs.slice(0,3);
+}
+
+/* ---------- 画面 ---------- */
+let view = 'home', statusOpen = null, slotPick = null;
+const el = document.getElementById('app');
+function go(v){ view = v; window.scrollTo(0,0); render(); }
+
+function lessonTimeline(k){
+  const D = S.days[k]||{}; const W = dayPlan(k);
+  const cancelled = D.cancelled||{};
+  const rows = [];
+  if(W.team){ W.items.forEach(it=>rows.push({time:hhmm(it.s)+'〜'+hhmm(it.e), what:it.name, cls:'lesson', fixed:true})); return {rows, free:null, home:W.home, off:W.off}; }
+  const ivs = [];
+  const its = W.items.map(x=>Object.assign({}, x));
+  // 習い事から習い事へ直接向かう場合は「いったん帰宅」を入れない
+  const act = its.filter(x=>!cancelled[x.id]);
+  act.forEach((it,i)=>{ const nx = act[i+1]; if(nx && it.back>0 && nx.to>0 && nx.s>=it.e && nx.s-it.e < it.back+nx.to){ it.back = 0; nx.to = nx.s-it.e; nx.fromPlace = it.place; } });
+  its.forEach(it=>{
+    const off = !!cancelled[it.id];
+    if(it.to && !off) rows.push({time:hhmm(it.s-it.to)+'〜'+hhmm(it.s), what:'移動（'+(it.fromPlace?it.fromPlace:'')+(it.place? '→'+it.place : '')+'）'+it.to+'分', cls:'move'});
+    rows.push({time:hhmm(it.s)+'〜'+hhmm(it.e), what:it.name+(it.place?'（'+it.place+'）':''), cls:'lesson'+(off?' off':''), id:it.fixed?null:it.id, off});
+    if(it.back && !off) rows.push({time:hhmm(it.e)+'〜'+hhmm(it.e+it.back), what:'移動（'+(it.place||'')+'→自宅）'+it.back+'分', cls:'move'});
+    if(!off){ const a = Math.max(it.s-it.to, W.home), b = Math.min(it.e+it.back, BED); if(b>a) ivs.push([a,b]); }
+  });
+  ivs.sort((x,y)=>x[0]-y[0]); let occupied = 0, cs = -1, ce = -1;
+  ivs.forEach(([a,b])=>{ if(a>ce){ if(ce>cs) occupied += ce-cs; cs=a; ce=b; } else ce = Math.max(ce,b); }); if(ce>cs) occupied += ce-cs;
+  const study = D.studyMin||0;
+  const window_ = BED - W.home;
+  const free = Math.max(window_ - occupied - DINNER - study, 0);
+  return {rows, free, home:W.home, study, off:W.off};
+}
+
+function hdr(title, back, step){
+  return '<div class="topbar">'+(back?'<button class="back" data-go="'+back+'">← もどる</button>':'<span></span>')+(step?'<span class="step">'+step+'</span>':'')+'</div>'+
+    (title?'<h1>'+title+'</h1>':'');
+}
+function checkBox(on){ return '<span class="box" aria-hidden="true">'+(on?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a1405" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':'')+'</span>'; }
+
+/* --- ホーム --- */
+function vHome(){
+  const s = summary(); const L = lvInfo(s.total,50); const td = today(); const D = S.days[todayKey()]||{};
+  const h = new Date().getHours();
+  const P = dayPlan(todayKey());
+  const auto = P.team ? (h<18 ? 'weekend' : 'night') : h<10 ? 'morning' : (h<18 || P.off) && h<19 ? 'back' : 'night';
+  const slot = slotPick||auto;
+  const cards = {
+    morning:{when:'朝', what:'朝のチェック', desc:'今日の予定・朝練・ゆうべ寝た時刻・体重', to:'morning', bg:'var(--t2)'},
+    back: P.off ? {when:'学校お休みの日', what:'きょうの時間の使いかた', desc:'宿題とテストを確認して、きょうの時間の使いかたを決めよう', to:'back1', bg:'var(--gold)'}
+               : {when:'帰り道（電車の5分）', what:'帰宅チェック', desc:'宿題とテストを確認して、じゆう時間の使いかたを決めよう', to:'back1', bg:'var(--gold)'},
+    night:{when:'夜', what:'夜のふり返り', desc:'習い事・今日がんばったこと → あしたの朝の予定', to:'night1', bg:'var(--t1)'},
+    weekend:{when:'チームの日', what:'朝のチェック', desc:'今日の予定・ゆうべ寝た時刻・体重。夜は「夜のふり返り」へ', to:'morning', bg:'var(--t2)'},
+  };
+  const c = cards[slot];
+  const weekPct = Math.min(100, Math.round(s.week/WEEK_GREAT*100));
+  const badges = ['<span class="badge">夏トレ2026 クリア</span>'];
+  if(s.reached[7]) badges.push('<span class="badge alt">1週間つづけた</span>');
+  if(s.reached[30]) badges.push('<span class="badge alt">1か月つづけた</span>');
+  if(s.reached[100]) badges.push('<span class="badge alt">100日つづけた</span>');
+  return `
+  <div class="topbar"><span class="small muted">${md(td)}</span><button class="back" data-go="parent">おうちの人</button></div>
+  <button class="panel row" data-go="status" style="text-align:left;width:100%">
+    <div class="lv"><small>LV</small><b>${L.lv}</b></div>
+    <div class="grow stack" style="gap:6px">
+      <div class="row" style="gap:8px;flex-wrap:wrap"><h1 style="font-size:20px">こうき</h1>${badges.join('')}</div>
+      <div class="bar"><i style="width:${L.pct}%"></i></div>
+      <span class="small muted">つぎのレベルまで あと<span class="num">${L.toNext}</span>XP</span>
+    </div>
+  </button>
+  <div class="stats3">
+    <div class="stat"><b>${s.streak}</b><span>日つづけている</span></div>
+    <div class="stat"><b>${s.month}</b><span>日 今月記録</span></div>
+    <div class="stat"><b>${s.todayXP}</b><span>XP きょう</span></div>
+  </div>
+  <div class="panel stack" style="gap:8px">
+    <div class="row"><span class="label grow">今週のXP</span><span class="num" style="font-size:20px">${s.week}</span><span class="small muted">/ 目標${WEEK_GOAL}</span></div>
+    <div class="bar"><i style="width:${weekPct}%;background:${s.week>=WEEK_GREAT?'var(--ok)':'var(--gold)'}"></i></div>
+    <span class="small muted">${s.week>=WEEK_GREAT?'がんばった週！ 700XPこえ':s.week>=WEEK_GOAL?'今週の目標クリア！ 700XPで「がんばった週」':'目標まで あと'+(WEEK_GOAL-s.week)+'XP'}</span>
+  </div>
+  <div class="stack" style="gap:8px">
+    <div class="stack" style="gap:8px"><h2>今やること</h2>
+      <div class="seg" style="gap:6px;flex-wrap:nowrap">${[['morning','朝'],['back',P.off?'日中':'帰り道'],['night','夜'],['weekend','チーム']].map(([id,l])=>`<button data-slot="${id}" aria-pressed="${slot===id}" style="min-width:0;min-height:36px;font-size:12.5px;padding:0 8px;white-space:nowrap">${l}</button>`).join('')}</div>
+    </div>
+    <button class="now" style="background:${c.bg}" data-go="${c.to}"><div class="when">${c.when}</div><div class="what">${c.what}</div><div class="desc">${c.desc}</div><span class="go">はじめる →</span></button>
+  </div>
+  <div class="grid2">
+    <button class="panel" data-go="jishu" style="text-align:left"><h2>自主トレチェック</h2><span class="small muted">いつでも記録できる</span></button>
+    <button class="panel" data-go="status" style="text-align:left"><h2>ステータス</h2><span class="small muted">8テーマのレベル</span></button>
+  </div>
+  <button class="btn ghost" data-act="rest" aria-pressed="${!!D.rest}">${D.rest?'きょうは休養日（継続はとぎれません）':'きょうは休養日にする'}</button>
+  <p class="small muted" style="text-align:center">めざせ！全日本選手権優勝・ワールドシリーズ出場</p>`;
+}
+
+/* --- 朝のチェック --- */
+function vMorning(){
+  const k = todayKey(), D = day(k), td = today(), W = dayPlan(k);
+  const plan = (D.morningPlan && D.morningPlan.blocks)||[];
+  const checks = D.morningChecks||{};
+  const sleep = D.sleep!=null ? D.sleep : m(21);
+  const st = sleepStars(sleep);
+  const k1 = dk(addDays(td,1));
+  const tests = allItems().filter(x=>!isDone(x) && (x.date===k || x.date===k1 || (x.end && x.date<k && x.end>=k))).sort((a,b)=>a.date<b.date?-1:1);
+  const when = x=> (x.end && x.end!==x.date && x.date<=k) ? md(parseDk(x.end)).replace(/（.）/,'')+'までのどこか' : x.date===k ? 'きょう' : 'あした';
+  const items = (W.banners||[]).map(b=>`<div class="row"><span class="tag">終日</span><span class="small">${esc(b)}</span></div>`).join('')
+    + W.items.map(it=>`<div class="row" style="align-items:flex-start"><span class="num muted" style="width:52px;flex:none">${hhmm(it.s)}</span><span style="min-width:0">${esc(it.name)}</span></div>`).join('')
+    + (W.offs||[]).map(t=>`<div class="row"><span class="tag">休み</span><span class="small muted">${esc(t)}</span></div>`).join('');
+  return hdr('おはよう、こうき！','home','朝のチェック')+`
+  <section class="panel stack"><span class="label">きょうの予定　${md(td)}</span>${items||'<span class="muted small">習い事はなし</span>'}
+    ${tests.map(t=>`<div class="row" style="align-items:flex-start"><span class="tag ${isTest(t)?'gold':''}" style="flex:none">${when(t)}</span><span class="small" style="min-width:0">${esc(t.subj)}${isTest(t)?'':'（'+esc(t.kind||'しめきり')+'）'}：${esc(t.label)}</span></div>`).join('')}
+  </section>
+  <section class="stack"><span class="label">朝練（ゆうべ決めたこと）</span>
+    ${plan.length? plan.map(b=>`<button class="check" data-act="mcheck" data-id="${b.id}" aria-pressed="${!!checks[b.id]}">${checkBox(checks[b.id])}<span class="grow t">${esc(b.label)}</span><span class="small muted">${b.mins}分</span></button>`).join('')
+     : '<p class="note">ゆうべ決めた朝の予定はありません。夜のふり返りで「あしたの朝の予定」を決められるよ</p>'}
+    ${plan.length && plan.every(b=>checks[b.id])?'<p class="hint">決めたとおりできた！ ⑧生活習慣 +10XP</p>':''}
+  </section>
+  <section class="grid2">
+    <div class="panel stack" style="gap:8px"><span class="label">ゆうべ寝た時刻</span>
+      <div class="stepper" style="justify-content:space-between"><button data-act="sleep" data-d="-15" aria-label="15分早く">−</button><output class="num">${hhmm(sleep)}</output><button data-act="sleep" data-d="15" aria-label="15分遅く">＋</button></div>
+      <span class="small" style="color:var(--gold);text-align:center">${'★'.repeat(st)}${'☆'.repeat(3-st)}${st===3?' 満点！':''}</span>
+    </div>
+    <div class="panel stack" style="gap:8px"><label class="label" for="weight">けさの体重</label>
+      <div class="row"><input id="weight" type="number" inputmode="decimal" step="0.1" min="20" max="80" placeholder="--.-" value="${D.weight||''}" data-act="weight"><span class="muted">kg</span></div>
+      <span class="small muted" style="text-align:center">毎朝はかろう</span>
+    </div>
+  </section>
+  <button class="btn" data-act="morningDone">${D.morningDone?'記録ずみ。いってらっしゃい！':'いってきます！'}</button>`;
+}
+
+/* --- 帰宅チェック① --- */
+function vBack1(){
+  const k = todayKey(), D = day(k), td = today(), w = td.getDay(), P = dayPlan(k);
+  const confirmQ = P.off ? null : w===1 ? '今日、漢字テストはありましたか？' : w===5 ? '今日、単語テストはありましたか？' : null;
+  const both = D.hw!=null && D.testStudy!=null;
+  const none = D.hw==='no' && D.testStudy==='no';
+  const q = D.hw==='yes'&&D.testStudy==='yes' ? '宿題とテスト勉強、あわせてどれくらい？' : D.hw==='yes' ? '宿題、どれくらいかかりそう？' : 'テスト勉強、どれくらいする？';
+  const sugg = !both ? '' : D.hw==='yes'&&D.testStudy==='yes' ? '宿題とテスト勉強、両方やろう！' : D.hw==='yes' ? '宿題を先にやろう！' : D.testStudy==='yes' ? 'テストの勉強に時間を使おう' : '宿題もテスト勉強もなし。じゆうに使える日だね！';
+  const all = allItems().filter(x=>!isDone(x));
+  const near = all.filter(x=>isTest(x) && lastDay(x)>=k).sort((a,b)=>a.date<b.date?-1:1).slice(0,3);
+  const k2 = dk(addDays(td,2));
+  const dues = all.filter(x=>!isTest(x) && x.date>k && x.date<=k2).sort((a,b)=>a.date<b.date?-1:1);
+  const can = both && (none || D.studyMin);
+  return hdr('おかえり、こうき！','home','帰宅チェック 1/2')+`
+  ${confirmQ?`<section class="stack"><span class="label">${confirmQ}</span><div class="seg">${[['yes','あった'],['no','なかった']].map(([v,l])=>`<button data-act="set" data-f="testConfirm" data-v="${v}" aria-pressed="${D.testConfirm===v}">${l}</button>`).join('')}</div>
+    ${D.testConfirm==='no'?`<p class="note">予定が変わったのかも。${w===5?'パパ・ママに伝えてね':'念のため確認しよう'}</p>`:''}</section>`:''}
+  ${P.off?`<p class="hint">きょうは学校お休み${(P.banners||[]).length?'（'+esc(P.banners[0])+'）':''}。宿題やテスト勉強があれば確認しよう</p>`:DAY_HINT[w]?`<p class="hint">${DAY_HINT[w]}</p>`:''}
+  <section class="stack">
+    <div class="row"><span class="label grow">きょう、宿題は出た？</span><a class="small" style="color:var(--gold);font-weight:900" href="https://portals.veracross.au/laurus/" target="_blank" rel="noopener">ベラクロスで見る ↗</a></div>
+    <div class="seg">${[['yes','出た'],['no','出なかった']].map(([v,l])=>`<button data-act="set" data-f="hw" data-v="${v}" aria-pressed="${D.hw===v}">${l}</button>`).join('')}</div>
+    ${D.hw!=null?`<span class="label">テストの勉強もする？</span><div class="seg">${[['yes','する'],['no','しない']].map(([v,l])=>`<button data-act="set" data-f="testStudy" data-v="${v}" aria-pressed="${D.testStudy===v}">${l}</button>`).join('')}</div>`:''}
+    ${sugg?`<p class="note" style="text-align:center;font-weight:700">${sugg}</p>`:''}
+    ${(w===1||w===3)?'<p class="small muted">Englishは不定期テストもあるよ。先生から聞いたらベラクロスもチェックしよう</p>':''}
+  </section>
+  ${both && !none?`<section class="stack"><span class="label">${q}</span><div class="seg">${[15,30,45,60].map(v=>`<button data-act="set" data-f="studyMin" data-v="${v}" aria-pressed="${D.studyMin===v}">${v===60?'1時間':v+'分'}</button>`).join('')}</div></section>`:''}
+  <section class="stack"><span class="label">ちかづいているテスト</span>
+    ${near.length? near.map(t=>{ const ranged = t.end && t.end!==t.date; const ref = ranged && t.date<k ? t.end : t.date; const days = Math.round((parseDk(ref)-parseDk(k))/86400000);
+      const dateTxt = ranged ? md(parseDk(t.date)).replace(/（.）/,'')+'〜'+md(parseDk(t.end)).replace(/（.）/,'') : md(parseDk(t.date));
+      const left = ranged && t.date<=k ? '日にち未定' : days===0 ? 'きょう' : 'あと'+days+'日';
+      return `<div class="panel row"><div class="grow" style="min-width:0"><div class="small muted">${esc(t.subj)}${t.kind&&t.kind!=='テスト'?'・'+esc(t.kind):''}</div><div style="font-weight:800">${esc(t.label)}</div></div><div style="text-align:right;flex:none"><div class="small">${dateTxt}</div><div class="small" style="color:${days<=3?'var(--warn)':'var(--muted)'};font-weight:900">${left}</div></div></div>`; }).join('') : '<p class="note">登録されているテストはありません</p>'}
+  </section>
+  ${dues.length?`<section class="stack"><span class="label">もうすぐしめきり（宿題・提出物）</span>${dues.map(t=>`<div class="panel row"><div class="grow" style="min-width:0"><div class="small muted">${esc(t.subj)}・${esc(t.kind||'提出')}</div><div style="font-weight:800">${esc(t.label)}</div></div><div style="text-align:right;flex:none"><div class="small">${md(parseDk(t.date))}</div><div class="small" style="color:var(--warn);font-weight:900">${t.date===dk(addDays(td,1))?'あした':'あさって'}</div></div></div>`).join('')}</section>`:''}
+  <button class="btn" data-act="toBack2" ${can?'':'disabled'}>つぎへ：きょうの時間の使いかた →</button>`;
+}
+
+/* --- 帰宅チェック② --- */
+function vBack2(){
+  const k = todayKey(), D = day(k), td = today(), W = dayPlan(k);
+  if(W.trip) return hdr('きょうは旅行の日','home','帰宅チェック 2/2')+'<p class="note">旅行の日は時間割づくりはお休み。体を動かしたら自主トレチェックに記録しよう</p><button class="btn" data-go="jishu">自主トレチェックへ</button>';
+  if(W.team) return hdr('きょうはチームの日','home','帰宅チェック 2/2')+'<p class="note">チーム練習・試合の日は、時間割づくりはお休み。自主トレをしたら自主トレチェックに記録しよう</p><button class="btn" data-go="jishu">自主トレチェックへ</button>';
+  const T = lessonTimeline(k);
+  const plan = D.plan||[];
+  const used = plan.reduce((a,b)=>a+b.mins,0);
+  const left = T.free - used;
+  const recIds = new Set(recommend().map(r=>r[0]));
+  const palette = ['mobility','motor','prep','plyo','movement','medball','suburi','okiTee'].map(id=>MENU[id]).concat([{id:'rest',label:'休けい',mins:[5,10,15]}]);
+  return hdr('きょうの時間の使いかた','back1','帰宅チェック 2/2')+`
+  <section class="panel stack" style="gap:4px"><span class="label">${T.off?'朝から寝るまで':'帰宅から寝るまで'}</span>
+    <div class="tl">
+      <div class="tl-row"><span class="time num">${hhmm(T.home)}</span><span class="what">${T.off?'きょうのスタート（学校お休み）':'帰宅'}</span></div>
+      ${T.rows.map(r=>`<div class="tl-row ${r.cls}"><span class="time num">${r.time}</span><span class="what grow">${esc(r.what)}</span>${r.id?`<button class="cancel" data-act="cancel" data-id="${r.id}">${r.off?'取り消す':'キャンセル'}</button>`:''}</div>`).join('')}
+      <div class="tl-row"><span class="time num">${hhmm(BED)}</span><span class="what">しゅうしん・読書</span></div>
+    </div>
+    <p class="small muted">この間に、夕食・おふろ（約${DINNER}分）${T.study?'と宿題・テスト勉強（'+T.study+'分）':''}を入れよう</p>
+  </section>
+  <section class="panel row" style="justify-content:space-between">
+    <div><span class="label">じゆうに使える時間</span><div class="small muted">練習と休けいを、すきな順に並べよう</div></div>
+    <div style="text-align:right"><span class="big" style="font-size:44px;color:${left<0?'var(--bad)':'var(--gold)'}">${left}</span><span class="small muted"> / ${T.free}分</span></div>
+  </section>
+  <section class="stack" style="gap:8px">
+    ${plan.length? plan.map((b,i)=>`<div class="block"><span class="dot" style="background:${b.id==='rest'?'var(--t7)':'var(--gold)'}"></span><span class="grow" style="font-weight:800">${esc(b.label)}</span>
+      <button class="mins num" data-act="pmins" data-i="${i}">${b.mins}分</button>
+      <button class="icon-btn" data-act="pmove" data-i="${i}" data-d="-1" aria-label="上へ">▲</button><button class="icon-btn" data-act="pmove" data-i="${i}" data-d="1" aria-label="下へ">▼</button>
+      <button class="icon-btn" data-act="pdel" data-i="${i}" aria-label="けす">✕</button></div>`).join('') : '<p class="note">下からタップして、やることを追加しよう</p>'}
+  </section>
+  <section class="stack" style="gap:8px">
+    <div class="row"><span class="label grow">タップして追加</span><span class="small" style="color:var(--gold);font-weight:900">★ 迷ったらおすすめから</span></div>
+    <div class="grid3">${palette.map(p=>{ const on = plan.some(b=>b.id===p.id); return `<button class="chip" data-act="padd" data-id="${p.id}" ${on?'disabled':''}>${esc(p.label)}${recIds.has(p.id)&&!on?'<span class="tag gold">★ おすすめ</span>':''}</button>`; }).join('')}</div>
+  </section>
+  <button class="btn" data-act="planSave" ${plan.length?'':'disabled'}>これで決定！</button>
+  <p class="small muted" style="text-align:center">決めたメニューは「自主トレチェック」に出てくるよ</p>`;
+}
+
+/* --- 自主トレチェック --- */
+function vJishu(){
+  const k = todayKey(), D = day(k); const menus = D.menus||{};
+  const mine = (D.plan||[]).filter(b=>MENU[b.id]).map(b=>b.id);
+  const recs = recommend().filter(r=>!mine.includes(r[0]));
+  const item = (id, extra)=>{ const M = MENU[id]; const on = !!menus[id]; return `<button class="check" data-act="menu" data-id="${id}" aria-pressed="${on}">${checkBox(on)}<span class="grow"><span class="t">${esc(M.label)}</span>${extra||(M.sub?`<span class="s" style="display:block">${esc(M.sub)}</span>`:'')}</span><span class="dot" style="background:${THEMES[M.th].color}" title="${THEMES[M.th].name}"></span></button>`; };
+  const done = Object.values(menus).filter(Boolean).length;
+  return hdr('自主トレチェック','home')+`
+  <div class="row"><p class="small muted grow" style="min-width:0">やったらタップ。いつでも記録できるよ</p><span style="white-space:nowrap;flex:none"><span class="num" style="font-size:24px;color:var(--gold)">${done}</span><span class="small muted"> こ</span></span></div>
+  ${mine.length?`<section class="panel stack" style="border-color:rgba(143,187,230,.35)"><span class="label" style="color:var(--t7)">自分で決めたメニュー</span>${mine.map(id=>item(id)).join('')}${mine.every(id=>menus[id])?'<p class="hint">決めたとおりできた！ ⑧生活習慣 +10XP</p>':''}</section>`:''}
+  <section class="panel stack" style="border-color:rgba(224,184,74,.35)"><span class="label" style="color:var(--gold)">迷ったらこれ！きょうのおすすめ</span>
+    ${recs.map(([id,why])=>item(id, `<span class="reason" style="display:block">${why}</span>`)).join('')}
+    <p class="small">えらぶのは自分。やりたいメニューからやってOK！</p>
+  </section>
+  ${GROUPS.map(G=>`<section class="stack" style="gap:8px"><span class="label">${G.name}</span>${MENUS.filter(M=>M.g===G.g).map(M=>item(M.id)).join('')}</section>`).join('')}`;
+}
+
+/* --- 夜のふり返り① --- */
+function vNight1(){
+  const k = todayKey(), D = day(k), td = today(), W = dayPlan(k);
+  const L = D.lessons||{}; const cancelled = D.cancelled||{}; const g = D.ganbatta||{};
+  const xpItems = W.items.filter(it=>!it.team && (it.xp||it.choice));
+  const teamHtml = W.team ? `<span class="label">きょうのチーム練習・試合</span><div class="seg">${[['practice','練習'],['game','試合'],['none','なし']].map(([v,l])=>`<button data-act="set" data-f="team" data-v="${v}" aria-pressed="${(D.team||'')===v}">${l}</button>`).join('')}</div>` : '';
+  const lessonHtml = teamHtml + (xpItems.length ? `<span class="label">きょうの習い事</span>`+xpItems.map(it=>{ const st = L[it.id] || (cancelled[it.id]?'no':null); const pick = D.kawakami || {bat:it.choice==='bat', def:it.choice==='def'};
+      return `<div class="panel stack" style="gap:8px"><div class="row"><span class="grow" style="font-weight:900">${esc(it.name)}</span>
+        <div class="seg" style="flex:none">${[['yes','行った'],['no','休み']].map(([v,l])=>`<button data-act="lesson" data-id="${it.id}" data-v="${v}" aria-pressed="${st===v}" style="min-width:76px">${l}</button>`).join('')}</div></div>
+        ${it.choice && st==='yes'?`<span class="small muted">きょうやったこと（両方もOK）</span><div class="seg">${[['bat','バッティング'],['def','守備']].map(([f,l])=>`<button data-act="kpick" data-f="${f}" aria-pressed="${!!pick[f]}">${l}</button>`).join('')}</div>`:''}</div>`; }).join('') : '');
+  const cnt = Object.values(g).filter(Boolean).length;
+  return hdr('今日のふり返り','home','夜のふり返り 1/2')+`
+  ${lessonHtml?`<section class="stack">${lessonHtml}</section>`:''}
+  <section class="stack"><span class="label" style="color:var(--t1)">① メンタル　今日、目標のためにがんばったことは？</span>
+    <p class="small muted">気持ちに勝ってできたことをタップ（いくつでもOK）</p>
+    ${GANBATTA.map(x=>`<button class="check" data-act="gan" data-id="${x.id}" aria-pressed="${!!g[x.id]}">${checkBox(g[x.id])}<span class="grow"><span class="s" style="display:block">${x.pre}</span><span class="t">${x.main}</span></span></button>`).join('')}
+    ${cnt?`<p class="hint" style="color:var(--t1);border-color:rgba(185,150,230,.4);background:rgba(185,150,230,.08)">${cnt>=3?'すごい！気持ちで勝った1日だね！':'ナイス！その積み重ねが自信になるよ'}</p>`:''}
+  </section>
+  <button class="btn" data-go="night2">つぎへ：あしたの朝の予定 →</button>`;
+}
+
+/* --- 夜のふり返り② あしたの朝 --- */
+function vNight2(){
+  const tk = dk(addDays(today(),1)); const T = day(tk);
+  const P = T.morningPlan || (T.morningPlan = {wake:m(6,10), blocks:[]});
+  const total = Math.max(m(7,45) - P.wake - 50, 0);
+  const used = P.blocks.reduce((a,b)=>a+b.mins,0);
+  const pal = [{id:'hw',label:'宿題',mins:[10,15,20,30]},{id:'test',label:'テスト勉強',mins:[10,15,20,30]},{id:'jishu',label:'自主練',mins:[15,20,30]},{id:'stretch',label:'4Dストレッチ',mins:[10,15,20,30]}];
+  return hdr('あしたの朝の予定','night1','夜のふり返り 2/2')+`
+  <p class="small muted">パパ・ママと話して、起きる時間と朝の使いかたを決めよう</p>
+  <section class="panel row" style="justify-content:space-between"><span class="label">あした起きる時間</span>
+    <div class="stepper"><button data-act="wake" data-d="-15" aria-label="15分早く">−</button><output class="num">${hhmm(P.wake)}</output><button data-act="wake" data-d="15" aria-label="15分遅く">＋</button></div></section>
+  <section class="panel row" style="justify-content:space-between"><span class="label">朝の時間 のこり</span><div><span class="big" style="font-size:40px;color:${total-used<0?'var(--bad)':'var(--gold)'}">${total-used}</span><span class="small muted"> / ${total}分</span></div></section>
+  <section class="stack" style="gap:8px">${P.blocks.length? P.blocks.map((b,i)=>`<div class="block"><span class="grow" style="font-weight:800">${esc(b.label)}</span><button class="mins num" data-act="mmins" data-i="${i}">${b.mins}分</button><button class="icon-btn" data-act="mmove" data-i="${i}" data-d="-1" aria-label="上へ">▲</button><button class="icon-btn" data-act="mmove" data-i="${i}" data-d="1" aria-label="下へ">▼</button><button class="icon-btn" data-act="mdel" data-i="${i}" aria-label="けす">✕</button></div>`).join('') : '<p class="note">下からタップして、朝やることを追加しよう</p>'}</section>
+  <div class="grid2">${pal.map(p=>{ const on = P.blocks.some(b=>b.id===p.id); return `<button class="chip" data-act="madd" data-id="${p.id}" ${on?'disabled':''}>${p.label}</button>`; }).join('')}</div>
+  <button class="btn" data-act="nightDone">おやすみ！</button>`;
+}
+
+/* --- ステータス --- */
+function vStatus(){
+  const s = summary(); const L = lvInfo(s.total,50);
+  const ranked = s.themes.map((x,i)=>i).filter(i=>i!==6);
+  return hdr('ステータス','home')+`
+  <section class="panel row"><div class="lv"><small>LV</small><b>${L.lv}</b></div><div class="grow stack" style="gap:6px"><span class="small muted">ぜんぶのXP <span class="num" style="font-size:18px;color:var(--chalk)">${s.total}</span></span><div class="bar"><i style="width:${L.pct}%"></i></div><span class="small muted">つぎのレベルまで あと${L.toNext}XP</span></div></section>
+  <div class="stats3"><div class="stat"><b>${s.streak}</b><span>日つづけている</span></div><div class="stat"><b>${s.month}</b><span>日 今月記録</span></div><div class="stat"><b>${s.week}</b><span>XP 今週</span></div></div>
+  <section class="stack" style="gap:8px"><span class="label">8つのテーマ（タップでXPのもらい方）</span>
+  ${THEMES.map((T,i)=>{ const I = lvInfo(s.themes[i],25); const open = statusOpen===i; return `<button class="theme-row" data-act="topen" data-i="${i}" aria-expanded="${open}">
+    <div class="row"><span class="dot" style="background:${T.color}"></span><span class="grow" style="font-weight:900">${T.name}</span><span class="small muted num">${s.themes[i]}XP</span><span class="num" style="font-size:18px;color:${T.color};min-width:44px;text-align:right">LV${I.lv}</span></div>
+    <div class="bar"><i style="width:${I.pct}%;background:${T.color}"></i></div>
+    ${open?`<span class="small" style="color:var(--chalk)">${T.how}</span>`:''}</button>`; }).join('')}
+  </section>
+  <p class="small muted">称号：夏トレ2026 クリア${s.reached[7]?'・1週間つづけた':''}${s.reached[30]?'・1か月つづけた':''}${s.reached[100]?'・100日つづけた':''}</p>`;
+}
+
+/* --- おうちの人 --- */
+function vParent(){
+  const k = todayKey();
+  const sh = S.sheet||{}; const url = sheetUrl();
+  const fmt = t=>{ const d = new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); };
+  const status = !url ? '<p class="note">まだ設定されていません。いまは手入力のテスト予定を表示しています</p>'
+    : `<p class="small muted">${sh.at?'最後に読み込んだ時刻：'+fmt(sh.at)+'（'+(sh.items||[]).length+'行）':'まだ読み込めていません'}</p>${sh.err?`<p class="small" style="color:var(--warn)">読み込みエラー：${esc(sh.err)}${sh.at?'（前回の内容を表示中）':''}</p>`:''}
+      ${(()=>{ const ci = S.calInfo||{}; return `<p class="small muted">カレンダー：${ci.from?ci.from.slice(5).replace('-','/')+'〜'+ci.to.slice(5).replace('-','/')+' の予定を読み込みずみ（'+fmt(ci.at)+'）':'まだ読み込めていません（曜日パターンで表示中）'}</p>${ci.err?`<p class="small" style="color:var(--warn)">カレンダー読み込みエラー：${esc(ci.err)}</p>`:''}`; })()}`;
+  const fromSheet = allItems().filter(x=>x.src!=='manual' && lastDay(x)>=k && !isDone(x)).sort((a,b)=>a.date<b.date?-1:1);
+  const manual = (S.tests||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  return hdr('おうちの人のメニュー','home')+`
+  <section class="panel stack"><span class="label">スプレッドシート「見通し」とつなぐ</span>
+    <p class="small muted">シートを更新すると、アプリを開いたときに自動で読み込みます（10分ごと）。記録の保存はこの端末のままです</p>
+    ${status}
+    ${url?'<button class="btn ghost" data-act="sheetReload">いま読み込む</button>':''}
+    <label class="small" for="surl">公開CSVのURL${SHEET_CSV?'（設定ずみ。変えるときだけ入力）':''}</label>
+    <input id="surl" type="url" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?…output=csv" value="${esc(S.sheetUrl||'')}">
+    <button class="btn ghost" data-act="sheetSave">URLを保存して読み込む</button>
+  </section>
+  <section class="panel stack"><span class="label">${S.sheet&&S.sheet.items?'シートから読んだ予定（これから）':'最初から入っている予定'}</span>
+    ${fromSheet.length? fromSheet.map(t=>`<div class="row" style="align-items:flex-start"><span class="small num" style="width:86px;flex:none">${t.date.slice(5).replace('-','/')}${t.end&&t.end!==t.date?'〜'+t.end.slice(5).replace('-','/'):''}</span><span class="small grow" style="min-width:0">${esc(t.subj)}・${esc(t.kind||'テスト')}：${esc(t.label)}</span></div>`).join('') : '<p class="note">これからの予定はありません</p>'}
+  </section>
+  <section class="panel stack"><span class="label">この端末で追加したテスト</span>
+    ${manual.length? manual.map(t=>`<div class="row"><span class="small num" style="width:86px">${t.date}</span><span class="small grow">${esc(t.subj)}：${esc(t.label)}</span><button class="icon-btn" data-act="tdel" data-date="${t.date}" data-label="${esc(t.label)}" aria-label="けす">✕</button></div>`).join('') : '<p class="small muted">シートにない急なテストだけ、ここで追加してください</p>'}
+    <div class="sep"></div>
+    <label class="small" for="tdate">日付</label><input id="tdate" type="date">
+    <label class="small" for="tsubj">教科</label><input id="tsubj" type="text" placeholder="例：Science">
+    <label class="small" for="tlabel">内容</label><input id="tlabel" type="text" placeholder="例：単語テスト">
+    <button class="btn ghost" data-act="tadd">テストを追加</button>
+  </section>
+  <section class="panel stack"><span class="label">表示する日付（動作確認用）</span>
+    <div class="stepper" style="justify-content:space-between"><button data-act="offset" data-d="-1" aria-label="前の日">−</button><output class="small">${md(today())}${S.offset?'（ずらし中）':''}</output><button data-act="offset" data-d="1" aria-label="次の日">＋</button></div>
+    ${S.offset?'<button class="btn ghost" data-act="offset0">きょうに戻す</button>':''}
+  </section>
+  <section class="panel stack"><span class="label">データのバックアップ</span>
+    <p class="small muted">記録はこの端末の中にだけ保存されています。ときどきコピーして、メモやLINEに保存しておくと安心です</p>
+    <button class="btn ghost" data-act="export">記録をコピーする</button>
+    <label class="small" for="imp">もどすときは、コピーした内容をここに貼り付け</label>
+    <textarea id="imp" placeholder="{&quot;v&quot;:1, ...}"></textarea>
+    <button class="btn ghost" data-act="import">貼り付けた内容でもどす</button>
+    <p id="pmsg" class="small" style="color:var(--gold)"></p>
+  </section>`;
+}
+
+/* ---------- 描画とイベント ---------- */
+const VIEWS = {home:vHome, morning:vMorning, back1:vBack1, back2:vBack2, jishu:vJishu, night1:vNight1, night2:vNight2, status:vStatus, parent:vParent};
+let lastTotal = null, lastLv = null;
+function render(){
+  el.innerHTML = VIEWS[view]();
+  const tabs = [['home','ホーム'],['jishu','自主トレ'],['status','ステータス']];
+  document.getElementById('tabs').innerHTML = tabs.map(([v,l])=>`<button data-go="${v}" ${view===v?'aria-current="page"':''}>${l}</button>`).join('');
+}
+function afterChange(){
+  save();
+  const s = summary(); const lv = lvFrom(s.total,50);
+  if(lastTotal!=null && s.total>lastTotal) toast('+'+(s.total-lastTotal)+' XP');
+  S.seen = S.seen||{};
+  if(lastLv!=null && lv>lastLv && lv>(S.seen.maxLv||1)){ S.seen.maxLv = lv; save(); levelUp(lv); }
+  else if(lv>(S.seen.maxLv||1)){ S.seen.maxLv = lv; save(); }
+  lastTotal = s.total; lastLv = lv;
+  render();
+}
+let tt;
+function toast(t){ const T = document.getElementById('toast'); T.textContent = t; T.hidden = false; clearTimeout(tt); tt = setTimeout(()=>{ T.hidden = true; }, 1400); }
+function levelUp(lv){
+  const box = document.getElementById('levelup');
+  box.innerHTML = `<div class="card stack" style="align-items:center"><span class="step">LEVEL UP</span><span class="big">${lv}</span><p style="font-weight:900">レベル${lv}になった！</p><p class="small muted">続けてきた積み重ねの成果だよ</p><button class="btn" data-act="lvclose">やった！</button></div>`;
+  box.hidden = false;
+}
+function cycle(arr, v){ const i = arr.indexOf(v); return arr[(i+1)%arr.length]; }
+
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-go],[data-act],[data-slot]'); if(!b) return;
+  if(b.dataset.slot){ slotPick = b.dataset.slot; render(); return; }
+  if(b.dataset.go){ go(b.dataset.go); return; }
+  const a = b.dataset.act, k = todayKey(), D = day(k);
+  switch(a){
+    case 'set': { const f = b.dataset.f; let v = b.dataset.v; if(f==='studyMin') v = Number(v); if(f==='team' && v==='none') v = null;
+      D[f] = (D[f]===v && f!=='team') ? null : v;
+      if(f==='hw'||f==='testStudy'){ D.studyMin = (D.hw==='no'&&D.testStudy==='no') ? 0 : (D.studyMin||null); }
+      break; }
+    case 'toBack2': go('back2'); return;
+    case 'cancel': { D.cancelled = D.cancelled||{}; D.cancelled[b.dataset.id] = !D.cancelled[b.dataset.id]; D.lessons = D.lessons||{}; if(D.cancelled[b.dataset.id]) D.lessons[b.dataset.id]='no'; else delete D.lessons[b.dataset.id]; break; }
+    case 'padd': { const id = b.dataset.id; const M = MENU[id] || {label:'休けい', mins:[5,10,15]}; D.plan = D.plan||[]; D.plan.push({id, label:M.label, mins:(M.mins||[10,15,20])[0], opts:M.mins||[10,15,20]}); break; }
+    case 'pmins': { const p = D.plan[+b.dataset.i]; p.mins = cycle(p.opts, p.mins); break; }
+    case 'pmove': { const i = +b.dataset.i, j = i + (+b.dataset.d); if(j>=0 && j<D.plan.length){ [D.plan[i],D.plan[j]] = [D.plan[j],D.plan[i]]; } break; }
+    case 'pdel': D.plan.splice(+b.dataset.i,1); break;
+    case 'planSave': D.planSaved = true; afterChange(); go('jishu'); return;
+    case 'menu': { D.menus = D.menus||{}; D.menus[b.dataset.id] = !D.menus[b.dataset.id]; break; }
+    case 'lesson': { D.lessons = D.lessons||{}; D.lessons[b.dataset.id] = b.dataset.v; break; }
+    case 'kpick': { const it = dayPlan(todayKey()).items.find(x=>x.choice) || {choice:'bat'}; D.kawakami = D.kawakami || {bat:it.choice==='bat', def:it.choice==='def'}; D.kawakami[b.dataset.f] = !D.kawakami[b.dataset.f]; break; }
+    case 'gan': { D.ganbatta = D.ganbatta||{}; D.ganbatta[b.dataset.id] = !D.ganbatta[b.dataset.id]; break; }
+    case 'wake': case 'madd': case 'mmins': case 'mmove': case 'mdel': {
+      const T = day(dk(addDays(today(),1))); const P = T.morningPlan || (T.morningPlan = {wake:m(6,10), blocks:[]});
+      if(a==='wake') P.wake = Math.min(Math.max(P.wake + (+b.dataset.d), m(5)), m(8));
+      if(a==='madd'){ const opts = {hw:[10,15,20,30],test:[10,15,20,30],jishu:[15,20,30],stretch:[10,15,20,30]}[b.dataset.id]; P.blocks.push({id:b.dataset.id, label:b.textContent.trim(), mins:opts[0], opts}); }
+      if(a==='mmins'){ const x = P.blocks[+b.dataset.i]; x.mins = cycle(x.opts, x.mins); }
+      if(a==='mmove'){ const i = +b.dataset.i, j = i + (+b.dataset.d); if(j>=0 && j<P.blocks.length) [P.blocks[i],P.blocks[j]] = [P.blocks[j],P.blocks[i]]; }
+      if(a==='mdel') P.blocks.splice(+b.dataset.i,1);
+      break; }
+    case 'nightDone': D.nightDone = true; afterChange(); go('home'); return;
+    case 'mcheck': { D.morningChecks = D.morningChecks||{}; D.morningChecks[b.dataset.id] = !D.morningChecks[b.dataset.id]; break; }
+    case 'sleep': { D.sleep = Math.min(Math.max((D.sleep!=null?D.sleep:m(21)) + (+b.dataset.d), m(20)), m(23,30)); break; }
+    case 'morningDone': { if(D.sleep==null) D.sleep = m(21); D.morningDone = true; afterChange(); go('home'); return; }
+    case 'rest': D.rest = !D.rest; break;
+    case 'topen': statusOpen = statusOpen===+b.dataset.i ? null : +b.dataset.i; render(); return;
+    case 'lvclose': document.getElementById('levelup').hidden = true; return;
+    case 'tadd': { const d = document.getElementById('tdate').value, s = document.getElementById('tsubj').value.trim(), l = document.getElementById('tlabel').value.trim();
+      if(!d||!l){ document.getElementById('pmsg') && (document.getElementById('pmsg').textContent = '日付と内容を入れてください'); return; }
+      S.tests.push({date:d, subj:s||'その他', label:l}); break; }
+    case 'sheetReload': loadSheet(true); toast('読み込み中…'); return;
+    case 'sheetSave': { S.sheetUrl = document.getElementById('surl').value.trim(); S.sheet = null; save(); loadSheet(true); toast('読み込み中…'); render(); return; }
+    case 'tdel': S.tests = S.tests.filter(t=>!(t.date===b.dataset.date && t.label===b.dataset.label)); break;
+    case 'offset': S.offset = (S.offset||0) + (+b.dataset.d); break;
+    case 'offset0': S.offset = 0; break;
+    case 'export': { const txt = JSON.stringify(S); const msg = document.getElementById('pmsg');
+      const ta = document.getElementById('imp');
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(()=>{ msg.textContent = 'コピーしました。メモなどに貼り付けて保存してください'; }).catch(()=>{ ta.value = txt; ta.select(); msg.textContent = '下の欄の内容を選んでコピーしてください'; }); }
+      else { ta.value = txt; ta.select(); msg.textContent = '下の欄の内容を選んでコピーしてください'; }
+      return; }
+    case 'import': { const msg = document.getElementById('pmsg'); try{ const o = JSON.parse(document.getElementById('imp').value); if(!o || !o.days) throw 0; S = o; afterChange(); go('parent'); setTimeout(()=>{ const p = document.getElementById('pmsg'); if(p) p.textContent = '記録をもどしました'; },0); }catch(err){ msg.textContent = '読み込めませんでした。コピーした内容をそのまま貼り付けてください'; } return; }
+  }
+  afterChange();
+});
+document.addEventListener('change', e=>{
+  if(e.target.id==='weight'){ const v = parseFloat(e.target.value); const D = day(todayKey()); D.weight = isFinite(v) && v>0 ? v : null; afterChange(); }
+});
+
+const s0 = summary(); lastTotal = s0.total; lastLv = lvFrom(s0.total,50);
+render();
+loadSheet(false);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible'){ render(); loadSheet(false); } });
+window.__koki = {dayXP, summary, lvInfo, sleepStars, parseCSV, rowsToItems, allItems};
+})();
+</script>
+
+</body>
+</html>
