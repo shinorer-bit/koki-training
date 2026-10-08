@@ -740,7 +740,7 @@ function vParent(){
     <button class="btn ghost" data-act="sheetSave">URLを保存して読み込む</button>
   </section>
   <section class="panel stack"><span class="label">${S.sheet&&S.sheet.items?'シートから読んだ予定（これから）':'最初から入っている予定'}</span>
-    ${fromSheet.length? fromSheet.map(t=>`<div class="row" style="align-items:flex-start"><span class="small num" style="width:86px;flex:none">${t.date.slice(5).replace('-','/')}${t.end&&t.end!==t.date?'〜'+t.end.slice(5).replace('-','/'):''}</span><span class="small grow" style="min-width:0">${esc(t.subj)}・${esc(t.kind||'テスト')}：${esc(t.label)}</span></div>`).join('') : '<p class="note">これからの予定はありません</p>'}
+    ${fromSheet.length? fromSheet.map(t=>`<div class="row" style="align-items:flex-start"><span class="small num" style="width:86px;flex:none">${(t.date.slice(0,4)!==k.slice(0,4)?t.date.slice(0,4)+'/':'')+t.date.slice(5).replace('-','/')}${t.end&&t.end!==t.date?'〜'+t.end.slice(5).replace('-','/'):''}</span><span class="small grow" style="min-width:0">${esc(t.subj)}・${esc(t.kind||'テスト')}：${esc(t.label)}</span></div>`).join('') : '<p class="note">これからの予定はありません</p>'}
   </section>
   <section class="panel stack"><span class="label">この端末で追加したテスト</span>
     ${manual.length? manual.map(t=>`<div class="row"><span class="small num" style="width:86px">${t.date}</span><span class="small grow">${esc(t.subj)}：${esc(t.label)}</span><button class="icon-btn" data-act="tdel" data-date="${t.date}" data-label="${esc(t.label)}" aria-label="けす">✕</button></div>`).join('') : '<p class="small muted">シートにない急なテストだけ、ここで追加してください</p>'}
