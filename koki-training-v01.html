@@ -235,7 +235,7 @@ S = load();
 if((S.v||1) < 2){ S.tests = (S.tests||[]).filter(t=>!DEFAULT_TESTS.some(d=>d.date===t.date && d.label===t.label)); S.v = 2; save(); }
 
 /* ---------- スプレッドシート「見通し」の読み込み（F-1：読むだけ。記録は端末に保存のまま） ---------- */
-const SHEET_CSV = '';   // 「ウェブに公開」した見通しシートのCSVのURL（おうちの人画面でも設定できる）
+const SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSybE0MNgkMNAobOwEZNTxt609F_RiecSMaZvVBnOPLiCxYelshmS-B7j2NPeoQXIZKKjDjJhcCF9hp/pub?gid=0&single=true&output=csv';   // 「ウェブに公開」した見通しシートのCSVのURL（おうちの人画面でも設定できる）
 function sheetUrl(){ return (S.sheetUrl||'').trim() || SHEET_CSV; }
 function parseCSV(t){
   const rows = []; let row = [], f = '', q = false;
@@ -300,7 +300,7 @@ function rowsToCal(rows){
   if(!rows.length) throw new Error('カレンダーシートが空です');
   const h = rows[0].map(x=>x.trim()); const ix = n=>h.indexOf(n);
   const iD=ix('日付'), iS=ix('開始'), iE=ix('終了'), iA=ix('終日'), iT=ix('タイトル');
-  if(iD<0 || iT<0) throw new Error('カレンダーシートの列が見つかりません');
+  if(iD<0 || iT<0) throw new Error('「カレンダー」シートがまだウェブ公開されていません');
   let from='', to=''; const days = {};
   rows.slice(1).forEach(r=>{
     const title = String(r[iT]||'').trim(); if(!title) return;
