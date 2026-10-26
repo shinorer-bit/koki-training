@@ -462,7 +462,7 @@ function recommend(){
 /* ---------- 画面 ---------- */
 let view = 'home', statusOpen = null, slotPick = null;
 const el = document.getElementById('app');
-function go(v){ if(v!=='night1' && v!=='night2') backDays = 0; view = v; window.scrollTo(0,0); render(); }
+function go(v){ if(!(v==='night1' || v==='night2' || (v==='jishu' && view==='jishu'))) backDays = 0; view = v; window.scrollTo(0,0); render(); }
 
 function lessonTimeline(k){
   const D = S.days[k]||{}; const W = dayPlan(k);
@@ -535,8 +535,14 @@ function vHome(){
     <div class="bar"><i style="width:${weekPct}%;background:${s.week>=WEEK_GREAT?'var(--ok)':'var(--gold)'}"></i></div>
     <span class="small muted">${s.week>=WEEK_GREAT?'がんばった週！ 700XPこえ':s.week>=WEEK_GOAL?'今週の目標クリア！ 700XPで「がんばった週」':'目標まで あと'+(WEEK_GOAL-s.week)+'XP'}</span>
   </div>
+  <section class="panel stack" style="gap:10px;border-color:rgba(224,184,74,.5)">
+    <div class="row"><span class="badge">1分でOK</span><h2 class="grow">やったトレーニング・ケアを記録</h2></div>
+    <span class="small muted">まずはこれだけ。メニューやケアをタップするだけでOK</span>
+    <button class="btn" data-go="jishu">きょうの分を記録する</button>
+    <button class="btn ghost" data-act="jyesterday">きのうの分を記録する</button>
+  </section>
   <div class="stack" style="gap:8px">
-    <div class="stack" style="gap:8px"><h2>今やること</h2>
+    <div class="stack" style="gap:8px"><h2>時間があるとき</h2><span class="small muted">宿題・テストを確認して、自分で予定を立てよう</span>
       <div class="seg" style="gap:6px;flex-wrap:nowrap">${[['morning','朝'],['back',P.off?'日中':'帰り道'],['night','夜'],['weekend','チーム']].map(([id,l])=>`<button data-slot="${id}" aria-pressed="${slot===id}" style="min-width:0;min-height:36px;font-size:12.5px;padding:0 8px;white-space:nowrap">${l}</button>`).join('')}</div>
     </div>
     <button class="now" style="background:${c.bg}" data-go="${c.to}"><div class="when">${c.when}</div><div class="what">${c.what}</div><div class="desc">${c.desc}</div><span class="go">はじめる →</span></button>
@@ -665,7 +671,9 @@ function vJishu(){
   const recs = recommend().filter(r=>!mine.includes(r[0]));
   const item = (id, extra)=>{ const M = MENU[id]; const on = !!menus[id]; return `<button class="check" data-act="menu" data-id="${id}" aria-pressed="${on}">${checkBox(on)}<span class="grow"><span class="t">${esc(M.label)}</span>${extra||(M.sub?`<span class="s" style="display:block">${esc(M.sub)}</span>`:'')}</span><span class="dot" style="background:${THEMES[M.th].color}" title="${THEMES[M.th].name}"></span></button>`; };
   const done = Object.values(menus).filter(Boolean).length;
+  const dsw = `<section class="panel stack" style="gap:8px"><span class="label">記録する日</span><div class="stepper" style="justify-content:space-between"><button data-act="jstep" data-d="1" aria-label="前の日">−</button><output class="small">${backDays===0?'きょう　':backDays===1?'きのう　':''}${md(today())}</output><button data-act="jstep" data-d="-1" aria-label="次の日">＋</button></div>${backDays>0?'<span class="small muted">きのうやったことも、ここから記録できます（7日前まで）</span>':''}</section>`;
   return hdr('自主トレチェック','home')+`
+  ${dsw}
   <div class="row"><p class="small muted grow" style="min-width:0">やったらタップ。いつでも記録できるよ</p><span style="white-space:nowrap;flex:none"><span class="num" style="font-size:24px;color:var(--gold)">${done}</span><span class="small muted"> こ</span></span></div>
   ${mine.length?`<section class="panel stack" style="border-color:rgba(143,187,230,.35)"><span class="label" style="color:var(--t7)">自分で決めたメニュー</span>${mine.map(id=>item(id)).join('')}${mine.every(id=>menus[id])?'<p class="hint">決めたとおりできた！ ⑧生活習慣 +10XP</p>':''}</section>`:''}
   <section class="panel stack" style="border-color:rgba(224,184,74,.35)"><span class="label" style="color:var(--gold)">迷ったらこれ！きょうのおすすめ</span>
@@ -831,6 +839,8 @@ document.addEventListener('click', e=>{
       if(a==='mmove'){ const i = +b.dataset.i, j = i + (+b.dataset.d); if(j>=0 && j<P.blocks.length) [P.blocks[i],P.blocks[j]] = [P.blocks[j],P.blocks[i]]; }
       if(a==='mdel') P.blocks.splice(+b.dataset.i,1);
       break; }
+    case 'jstep': backDays = Math.min(Math.max(backDays + (+b.dataset.d), 0), 7); break;
+    case 'jyesterday': go('jishu'); backDays = 1; render(); return;
     case 'backfill': backDays = +b.dataset.n||1; go('night1'); return;
     case 'bfstep': backDays = Math.min(Math.max(backDays + (+b.dataset.d), 1), 7); break;
     case 'nightDone': D.nightDone = true; afterChange(); go('home'); return;
