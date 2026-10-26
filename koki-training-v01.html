@@ -143,13 +143,13 @@ textarea{min-height:120px;font-family:ui-monospace,monospace;font-size:12px}
 const KEY = 'koki-training-v01';
 const THEMES = [
   {name:'① メンタル', short:'メンタル', color:'var(--t1)', how:'「今日がんばったこと」の記録、継続ボーナス（7日・30日・100日）'},
-  {name:'② 体力・持久力', short:'体力', color:'var(--t2)', how:'モビリティ、下半身・上半身・体幹トレ、スイミング'},
+  {name:'② 体力・持久力', short:'体力', color:'var(--t2)', how:'モビリティ、ケア（ストレッチポール・静的ストレッチ・マッサージ）、下半身・上半身・体幹トレ、スイミング'},
   {name:'③ 走力・俊敏性', short:'走力', color:'var(--t3)', how:'キャスク、ムーブメントスキル、プライオ、モーターコントロール、プレパレーション、切り返しトレ、ステップ台'},
   {name:'④ バッティング', short:'打撃', color:'var(--t4)', how:'素振り、置きティー、龍之介コーチ、川上コーチ（バッティング）'},
   {name:'⑤ 守備・送球', short:'守備', color:'var(--t5)', how:'守備練習、シャドウピッチング、メディシンボール、うつ伏せスイミング、川上コーチ（守備）'},
   {name:'⑥ 大会・実戦経験', short:'実戦', color:'var(--t6)', how:'チーム練習（30）・試合（40）'},
   {name:'⑦ 人として成長', short:'人間力', color:'var(--t7)', how:'（試用版のあとで追加）コーチの言葉の記録、チームのためにしたこと'},
-  {name:'⑧ 生活習慣', short:'生活', color:'var(--t8)', how:'朝のチェック、体重、早寝（21時で満点）、計画を立てる、決めたとおりにやる、夜のふり返り'},
+  {name:'⑧ 生活習慣', short:'生活', color:'var(--t8)', how:'朝のチェック、体重、プロテイン・リカバリードリンク、早寝（21時で満点）、計画を立てる、決めたとおりにやる、夜のふり返り'},
 ];
 const MENUS = [
   {id:'mobility', g:'proto', label:'モビリティ', sub:'PMA または 4Dストレッチ', th:1, mins:[10,15,20]},
@@ -165,12 +165,17 @@ const MENUS = [
   {id:'swimback', g:'any', label:'うつ伏せスイミング背筋トレ', sub:'平泳ぎ・クロール 各30回', th:4},
   {id:'shubi', g:'any', label:'守備練習', sub:'', th:4},
   {id:'shadow', g:'any', label:'シャドウピッチング', sub:'', th:4},
+  {id:'stretchpole', g:'care', label:'ストレッチポール（コロコロ）', sub:'', th:1, mins:[10,15]},
+  {id:'staticstr', g:'care', label:'静的ストレッチ（全身）', sub:'お風呂のあとがおすすめ', th:1, mins:[10,15]},
+  {id:'massage', g:'care', label:'マッサージ・ケア', sub:'', th:1, mins:[10,15]},
+  {id:'protein', g:'care', label:'プロテイン・リカバリードリンク', sub:'毎日とりたい。わすれずに！', th:7},
   {id:'lower', g:'kin', label:'下半身トレーニング', sub:'月・水がおすすめ', th:1},
   {id:'upper', g:'kin', label:'上半身トレーニング', sub:'火・木がおすすめ', th:1},
   {id:'core', g:'kin', label:'体幹トレーニング', sub:'毎日OK', th:1},
 ];
 const MENU = Object.fromEntries(MENUS.map(m=>[m.id,m]));
 const GROUPS = [
+  {g:'care', name:'ケア・回復（毎日）'},
   {g:'proto', name:'体づくりプロトコル'},
   {g:'bat', name:'バッティング'},
   {g:'any', name:'いつでもOK'},
@@ -391,7 +396,7 @@ function dayXP(k, D){
   const g = Object.values(D.ganbatta||{}).filter(Boolean).length;
   t[0] += Math.min(g,5)*5;
   if(D.morningDone) t[7] += 5;
-  if(D.weight) t[7] += 5;
+  if(D.weight || D.weighed) t[7] += 5;
   if(D.sleep != null) t[7] += sleepStars(D.sleep)*5;
   const mp = D.morningPlan && D.morningPlan.blocks || [];
   if(mp.length && mp.every(b=>(D.morningChecks||{})[b.id])) t[7] += 10;
@@ -447,9 +452,11 @@ function recommend(){
   if(w===1||w===3) recs.push(['lower','きょうは下半身の日（月・水がおすすめ）']);
   else if(w===2||w===4) recs.push(['upper','きょうは上半身の日（火・木がおすすめ）']);
   else recs.push(['core','体幹は毎日やってもOK']);
+  if(w===1||w===2||w===6||w===0) recs.push(['stretchpole','夜はケア中心の日（月・火・土・日）。体をいたわろう']);
   const notYet = ['plyo','prep','medball','movement','motor','mobility'].find(id=>!done.has(id) && !recs.some(r=>r[0]===id));
   if(notYet) recs.push([notYet,'今週まだやっていないよ']);
-  return recs.slice(0,3);
+  if(!done.has('protein') && !(S.days[todayKey()]||{}).menus?.protein) recs.unshift(['protein','毎日とりたい！プロテイン・リカバリードリンク']);
+  return recs.slice(0,4);
 }
 
 /* ---------- 画面 ---------- */
@@ -570,9 +577,9 @@ function vMorning(){
       <div class="stepper" style="justify-content:space-between"><button data-act="sleep" data-d="-15" aria-label="15分早く">−</button><output class="num">${hhmm(sleep)}</output><button data-act="sleep" data-d="15" aria-label="15分遅く">＋</button></div>
       <span class="small" style="color:var(--gold);text-align:center">${'★'.repeat(st)}${'☆'.repeat(3-st)}${st===3?' 満点！':''}</span>
     </div>
-    <div class="panel stack" style="gap:8px"><label class="label" for="weight">けさの体重</label>
-      <div class="row"><input id="weight" type="number" inputmode="decimal" step="0.1" min="20" max="80" placeholder="--.-" value="${D.weight||''}"><span class="muted">kg</span></div>
-      <span class="small muted" style="text-align:center">毎朝はかろう</span>
+    <div class="panel stack" style="gap:8px"><span class="label">けさの体重</span>
+      <button class="check" data-act="weighed" aria-pressed="${!!(D.weighed||D.weight)}">${checkBox(D.weighed||D.weight)}<span class="grow t">はかった</span></button>
+      <details><summary class="small muted">数字も記録する（なくてもOK）</summary><div class="row" style="margin-top:6px"><input id="weight" type="number" inputmode="decimal" step="0.1" min="20" max="80" placeholder="--.-" value="${D.weight||''}"><span class="muted">kg</span></div></details>
     </div>
   </section>
   <button class="btn" data-act="morningDone">${D.morningDone?'記録ずみ。いってらっしゃい！':'いってきます！'}</button>`;
@@ -831,6 +838,7 @@ document.addEventListener('click', e=>{
     case 'sleep': { D.sleep = Math.min(Math.max((D.sleep!=null?D.sleep:m(21)) + (+b.dataset.d), m(20)), m(23,30)); break; }
     case 'morningDone': { if(D.sleep==null) D.sleep = m(21); D.morningDone = true; afterChange(); go('home'); return; }
     case 'rest': D.rest = !D.rest; break;
+    case 'weighed': D.weighed = !(D.weighed||D.weight); if(!D.weighed) D.weight = null; break;
     case 'topen': statusOpen = statusOpen===+b.dataset.i ? null : +b.dataset.i; render(); return;
     case 'lvclose': document.getElementById('levelup').hidden = true; return;
     case 'tadd': { const d = document.getElementById('tdate').value, s = document.getElementById('tsubj').value.trim(), l = document.getElementById('tlabel').value.trim();
