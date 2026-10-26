@@ -149,7 +149,7 @@ const THEMES = [
   {name:'⑤ 守備・送球', short:'守備', color:'var(--t5)', how:'守備練習、シャドウピッチング、メディシンボール、うつ伏せスイミング、川上コーチ（守備）'},
   {name:'⑥ 大会・実戦経験', short:'実戦', color:'var(--t6)', how:'チーム練習（30）・試合（40）'},
   {name:'⑦ 人として成長', short:'人間力', color:'var(--t7)', how:'（試用版のあとで追加）コーチの言葉の記録、チームのためにしたこと'},
-  {name:'⑧ 生活習慣', short:'生活', color:'var(--t8)', how:'朝のチェック、帰宅チェック、体重、プロテイン・リカバリードリンク、早寝（21時で満点）、計画を立てる、決めたとおりにやる、夜のふり返り'},
+  {name:'⑧ 生活習慣', short:'生活', color:'var(--t8)', how:'朝のチェック、帰宅チェック、体重をはかる、プロテイン・リカバリードリンク、早寝（21時で満点）、夜のふり返り'},
 ];
 const MENUS = [
   {id:'mobility', g:'proto', label:'モビリティ', sub:'PMA または 4Dストレッチ', th:1, mins:[10,15,20]},
@@ -504,10 +504,10 @@ function vHome(){
   const auto = P.team ? (h<18 ? 'weekend' : 'night') : h<10 ? 'morning' : (h<18 || P.off) && h<19 ? 'back' : 'night';
   const slot = slotPick||auto;
   const cards = {
-    morning:{when:'朝', what:'朝のチェック', desc:'今日の予定・朝練・ゆうべ寝た時刻・体重', to:'morning', bg:'var(--t2)'},
+    morning:{when:'朝', what:'朝のチェック', desc:'今日の予定・ゆうべ寝た時刻・体重', to:'morning', bg:'var(--t2)'},
     back: P.off ? {when:'学校お休みの日', what:'宿題・テストと予定の確認', desc:'宿題とテスト、きょうの習い事の予定を確認しよう', to:'back1', bg:'var(--gold)'}
                : {when:'帰り道（電車の5分）', what:'帰宅チェック', desc:'宿題とテスト、きょうの習い事の予定を確認しよう', to:'back1', bg:'var(--gold)'},
-    night:{when:'夜', what:'夜のふり返り', desc:'習い事・今日がんばったこと → あしたの朝の予定', to:'night1', bg:'var(--t1)'},
+    night:{when:'夜', what:'夜のふり返り', desc:'習い事に行ったか・今日がんばったことをタップ', to:'night1', bg:'var(--t1)'},
     weekend:{when:'チームの日', what:'朝のチェック', desc:'今日の予定・ゆうべ寝た時刻・体重。夜は「夜のふり返り」へ', to:'morning', bg:'var(--t2)'},
   };
   const c = cards[slot];
@@ -574,11 +574,7 @@ function vMorning(){
   <section class="panel stack"><span class="label">きょうの予定　${md(td)}</span>${items||'<span class="muted small">習い事はなし</span>'}
     ${tests.map(t=>`<div class="row" style="align-items:flex-start"><span class="tag ${isTest(t)?'gold':''}" style="flex:none">${when(t)}</span><span class="small" style="min-width:0">${esc(t.subj)}${isTest(t)?'':'（'+esc(t.kind||'しめきり')+'）'}：${esc(t.label)}</span></div>`).join('')}
   </section>
-  <section class="stack"><span class="label">朝練（ゆうべ決めたこと）</span>
-    ${plan.length? plan.map(b=>`<button class="check" data-act="mcheck" data-id="${b.id}" aria-pressed="${!!checks[b.id]}">${checkBox(checks[b.id])}<span class="grow t">${esc(b.label)}</span><span class="small muted">${b.mins}分</span></button>`).join('')
-     : '<p class="note">ゆうべ決めた朝の予定はありません。夜のふり返りで「あしたの朝の予定」を決められるよ</p>'}
-    ${plan.length && plan.every(b=>checks[b.id])?'<p class="hint">決めたとおりできた！ ⑧生活習慣 +10XP</p>':''}
-  </section>
+  <button class="btn ghost" data-go="jishu">朝やったトレーニング・ケアを記録する →</button>
   <section class="grid2">
     <div class="panel stack" style="gap:8px"><span class="label">ゆうべ寝た時刻</span>
       <div class="stepper" style="justify-content:space-between"><button data-act="sleep" data-d="-15" aria-label="15分早く">−</button><output class="num">${hhmm(sleep)}</output><button data-act="sleep" data-d="15" aria-label="15分遅く">＋</button></div>
@@ -696,7 +692,7 @@ function vNight1(){
         ${it.choice && st==='yes'?`<span class="small muted">きょうやったこと（両方もOK）</span><div class="seg">${[['bat','バッティング'],['def','守備']].map(([f,l])=>`<button data-act="kpick" data-f="${f}" aria-pressed="${!!pick[f]}">${l}</button>`).join('')}</div>`:''}</div>`; }).join('') : '');
   const cnt = Object.values(g).filter(Boolean).length;
   const bf = backDays>0 ? `<section class="panel stack" style="gap:8px"><span class="label">さかのぼって記録する日</span><div class="stepper" style="justify-content:space-between"><button data-act="bfstep" data-d="1" aria-label="もっと前の日">−</button><output class="small">${md(td)}</output><button data-act="bfstep" data-d="-1" aria-label="次の日">＋</button></div><span class="small muted">その日の夜のふり返りを、あとから入れられます（7日前まで）</span></section>` : '';
-  return hdr(backDays>0?'ふり返り（さかのぼり）':'今日のふり返り','home',backDays>0?'夜のふり返り':'夜のふり返り 1/2')+`
+  return hdr(backDays>0?'ふり返り（さかのぼり）':'今日のふり返り','home','夜のふり返り')+`
   ${bf}
   ${lessonHtml?`<section class="stack">${lessonHtml}</section>`:''}
   <section class="stack"><span class="label" style="color:var(--t1)">① メンタル　今日、目標のためにがんばったことは？</span>
@@ -704,7 +700,7 @@ function vNight1(){
     ${GANBATTA.map(x=>`<button class="check" data-act="gan" data-id="${x.id}" aria-pressed="${!!g[x.id]}">${checkBox(g[x.id])}<span class="grow"><span class="s" style="display:block">${x.pre}</span><span class="t">${x.main}</span></span></button>`).join('')}
     ${cnt?`<p class="hint" style="color:var(--t1);border-color:rgba(185,150,230,.4);background:rgba(185,150,230,.08)">${cnt>=3?'すごい！気持ちで勝った1日だね！':'ナイス！その積み重ねが自信になるよ'}</p>`:''}
   </section>
-  ${backDays>0?'<button class="btn" data-act="nightDone">この日の記録をおわる</button>':'<button class="btn" data-go="night2">つぎへ：あしたの朝の予定 →</button>'}`;
+  <button class="btn" data-act="nightDone">${backDays>0?'この日の記録をおわる':'おやすみ！'}</button>`;
 }
 
 /* --- 夜のふり返り② あしたの朝 --- */
