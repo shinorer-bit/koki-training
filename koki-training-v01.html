@@ -282,7 +282,7 @@ async function loadSheet(force){
     save();
   }catch(e){
     S.sheet = Object.assign({items:null, at:0}, S.sheet||{}, {err:(e && e.name==='AbortError') ? '時間切れ（電波を確認）' : String(e && e.message || e), errAt:Date.now()}); save();
-  }finally{ sheetBusy = false; if(typeof render==='function' && el) render(); }
+  }finally{ sheetBusy = false; const ae = document.activeElement; if(typeof render==='function' && el && !(ae && ae.tagName==='INPUT')) render(); }
 }
 function isTest(x){ return /テスト|試験/.test(x.kind||'テスト'); }
 function isDone(x){ return /^(実施済み|対応済み)/.test(x.memo||''); }
@@ -356,7 +356,8 @@ function dayPlan(k){
 }
 
 /* ---------- 日付（日本時間のまま扱う。toISOStringは使わない） ---------- */
-function today(){ const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate() + (S.offset||0)); return d; }
+let backDays = 0;  // 「さかのぼって記録」中だけ使う（保存しない）
+function today(){ const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate() + (S.offset||0) - backDays); return d; }
 function dk(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function parseDk(k){ const [y,mo,da] = k.split('-').map(Number); return new Date(y,mo-1,da,12); }
 function addDays(d,n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
@@ -454,7 +455,7 @@ function recommend(){
 /* ---------- 画面 ---------- */
 let view = 'home', statusOpen = null, slotPick = null;
 const el = document.getElementById('app');
-function go(v){ view = v; window.scrollTo(0,0); render(); }
+function go(v){ if(v!=='night1' && v!=='night2') backDays = 0; view = v; window.scrollTo(0,0); render(); }
 
 function lessonTimeline(k){
   const D = S.days[k]||{}; const W = dayPlan(k);
@@ -537,6 +538,7 @@ function vHome(){
     <button class="panel" data-go="jishu" style="text-align:left"><h2>自主トレチェック</h2><span class="small muted">いつでも記録できる</span></button>
     <button class="panel" data-go="status" style="text-align:left"><h2>ステータス</h2><span class="small muted">8テーマのレベル</span></button>
   </div>
+  <button class="btn ghost" data-act="backfill" data-n="1">前の日のふり返りをつける</button>
   <button class="btn ghost" data-act="rest" aria-pressed="${!!D.rest}">${D.rest?'きょうは休養日（継続はとぎれません）':'きょうは休養日にする'}</button>
   <p class="small muted" style="text-align:center">めざせ！全日本選手権優勝・ワールドシリーズ出場</p>`;
 }
@@ -569,7 +571,7 @@ function vMorning(){
       <span class="small" style="color:var(--gold);text-align:center">${'★'.repeat(st)}${'☆'.repeat(3-st)}${st===3?' 満点！':''}</span>
     </div>
     <div class="panel stack" style="gap:8px"><label class="label" for="weight">けさの体重</label>
-      <div class="row"><input id="weight" type="number" inputmode="decimal" step="0.1" min="20" max="80" placeholder="--.-" value="${D.weight||''}" data-act="weight"><span class="muted">kg</span></div>
+      <div class="row"><input id="weight" type="number" inputmode="decimal" step="0.1" min="20" max="80" placeholder="--.-" value="${D.weight||''}"><span class="muted">kg</span></div>
       <span class="small muted" style="text-align:center">毎朝はかろう</span>
     </div>
   </section>
@@ -677,14 +679,16 @@ function vNight1(){
         <div class="seg" style="flex:none">${[['yes','行った'],['no','休み']].map(([v,l])=>`<button data-act="lesson" data-id="${it.id}" data-v="${v}" aria-pressed="${st===v}" style="min-width:76px">${l}</button>`).join('')}</div></div>
         ${it.choice && st==='yes'?`<span class="small muted">きょうやったこと（両方もOK）</span><div class="seg">${[['bat','バッティング'],['def','守備']].map(([f,l])=>`<button data-act="kpick" data-f="${f}" aria-pressed="${!!pick[f]}">${l}</button>`).join('')}</div>`:''}</div>`; }).join('') : '');
   const cnt = Object.values(g).filter(Boolean).length;
-  return hdr('今日のふり返り','home','夜のふり返り 1/2')+`
+  const bf = backDays>0 ? `<section class="panel stack" style="gap:8px"><span class="label">さかのぼって記録する日</span><div class="stepper" style="justify-content:space-between"><button data-act="bfstep" data-d="1" aria-label="もっと前の日">−</button><output class="small">${md(td)}</output><button data-act="bfstep" data-d="-1" aria-label="次の日">＋</button></div><span class="small muted">その日の夜のふり返りを、あとから入れられます（7日前まで）</span></section>` : '';
+  return hdr(backDays>0?'ふり返り（さかのぼり）':'今日のふり返り','home',backDays>0?'夜のふり返り':'夜のふり返り 1/2')+`
+  ${bf}
   ${lessonHtml?`<section class="stack">${lessonHtml}</section>`:''}
   <section class="stack"><span class="label" style="color:var(--t1)">① メンタル　今日、目標のためにがんばったことは？</span>
     <p class="small muted">気持ちに勝ってできたことをタップ（いくつでもOK）</p>
     ${GANBATTA.map(x=>`<button class="check" data-act="gan" data-id="${x.id}" aria-pressed="${!!g[x.id]}">${checkBox(g[x.id])}<span class="grow"><span class="s" style="display:block">${x.pre}</span><span class="t">${x.main}</span></span></button>`).join('')}
     ${cnt?`<p class="hint" style="color:var(--t1);border-color:rgba(185,150,230,.4);background:rgba(185,150,230,.08)">${cnt>=3?'すごい！気持ちで勝った1日だね！':'ナイス！その積み重ねが自信になるよ'}</p>`:''}
   </section>
-  <button class="btn" data-go="night2">つぎへ：あしたの朝の予定 →</button>`;
+  ${backDays>0?'<button class="btn" data-act="nightDone">この日の記録をおわる</button>':'<button class="btn" data-go="night2">つぎへ：あしたの朝の予定 →</button>'}`;
 }
 
 /* --- 夜のふり返り② あしたの朝 --- */
@@ -820,6 +824,8 @@ document.addEventListener('click', e=>{
       if(a==='mmove'){ const i = +b.dataset.i, j = i + (+b.dataset.d); if(j>=0 && j<P.blocks.length) [P.blocks[i],P.blocks[j]] = [P.blocks[j],P.blocks[i]]; }
       if(a==='mdel') P.blocks.splice(+b.dataset.i,1);
       break; }
+    case 'backfill': backDays = +b.dataset.n||1; go('night1'); return;
+    case 'bfstep': backDays = Math.min(Math.max(backDays + (+b.dataset.d), 1), 7); break;
     case 'nightDone': D.nightDone = true; afterChange(); go('home'); return;
     case 'mcheck': { D.morningChecks = D.morningChecks||{}; D.morningChecks[b.dataset.id] = !D.morningChecks[b.dataset.id]; break; }
     case 'sleep': { D.sleep = Math.min(Math.max((D.sleep!=null?D.sleep:m(21)) + (+b.dataset.d), m(20)), m(23,30)); break; }
@@ -844,8 +850,8 @@ document.addEventListener('click', e=>{
   }
   afterChange();
 });
-document.addEventListener('change', e=>{
-  if(e.target.id==='weight'){ const v = parseFloat(e.target.value); const D = day(todayKey()); D.weight = isFinite(v) && v>0 ? v : null; afterChange(); }
+document.addEventListener('input', e=>{
+  if(e.target.id==='weight'){ const v = parseFloat(e.target.value); const D = day(todayKey()); D.weight = isFinite(v) && v>0 ? v : null; save(); }  // 入力中は画面を描き直さない
 });
 
 const s0 = summary(); lastTotal = s0.total; lastLv = lvFrom(s0.total,50);
