@@ -149,7 +149,7 @@ const THEMES = [
   {name:'⑤ 守備・送球', short:'守備', color:'var(--t5)', how:'守備練習、シャドウピッチング、メディシンボール、うつ伏せスイミング、川上コーチ（守備）'},
   {name:'⑥ 大会・実戦経験', short:'実戦', color:'var(--t6)', how:'チーム練習（30）・試合（40）'},
   {name:'⑦ 人として成長', short:'人間力', color:'var(--t7)', how:'（試用版のあとで追加）コーチの言葉の記録、チームのためにしたこと'},
-  {name:'⑧ 生活習慣', short:'生活', color:'var(--t8)', how:'朝のチェック、体重、プロテイン・リカバリードリンク、早寝（21時で満点）、計画を立てる、決めたとおりにやる、夜のふり返り'},
+  {name:'⑧ 生活習慣', short:'生活', color:'var(--t8)', how:'朝のチェック、帰宅チェック、体重、プロテイン・リカバリードリンク、早寝（21時で満点）、計画を立てる、決めたとおりにやる、夜のふり返り'},
 ];
 const MENUS = [
   {id:'mobility', g:'proto', label:'モビリティ', sub:'PMA または 4Dストレッチ', th:1, mins:[10,15,20]},
@@ -401,6 +401,7 @@ function dayXP(k, D){
   const mp = D.morningPlan && D.morningPlan.blocks || [];
   if(mp.length && mp.every(b=>(D.morningChecks||{})[b.id])) t[7] += 10;
   if(D.nightDone) t[7] += 5;
+  if(D.backDone) t[7] += 5;
   return t;
 }
 function sleepStars(mins){ return mins<=m(21)?3 : mins<=m(21,30)?2 : mins<=m(22)?1 : 0; }
@@ -504,8 +505,8 @@ function vHome(){
   const slot = slotPick||auto;
   const cards = {
     morning:{when:'朝', what:'朝のチェック', desc:'今日の予定・朝練・ゆうべ寝た時刻・体重', to:'morning', bg:'var(--t2)'},
-    back: P.off ? {when:'学校お休みの日', what:'きょうの時間の使いかた', desc:'宿題とテストを確認して、きょうの時間の使いかたを決めよう', to:'back1', bg:'var(--gold)'}
-               : {when:'帰り道（電車の5分）', what:'帰宅チェック', desc:'宿題とテストを確認して、じゆう時間の使いかたを決めよう', to:'back1', bg:'var(--gold)'},
+    back: P.off ? {when:'学校お休みの日', what:'宿題・テストと予定の確認', desc:'宿題とテスト、きょうの習い事の予定を確認しよう', to:'back1', bg:'var(--gold)'}
+               : {when:'帰り道（電車の5分）', what:'帰宅チェック', desc:'宿題とテスト、きょうの習い事の予定を確認しよう', to:'back1', bg:'var(--gold)'},
     night:{when:'夜', what:'夜のふり返り', desc:'習い事・今日がんばったこと → あしたの朝の予定', to:'night1', bg:'var(--t1)'},
     weekend:{when:'チームの日', what:'朝のチェック', desc:'今日の予定・ゆうべ寝た時刻・体重。夜は「夜のふり返り」へ', to:'morning', bg:'var(--t2)'},
   };
@@ -542,7 +543,7 @@ function vHome(){
     <button class="btn ghost" data-act="jyesterday">きのうの分を記録する</button>
   </section>
   <div class="stack" style="gap:8px">
-    <div class="stack" style="gap:8px"><h2>時間があるとき</h2><span class="small muted">宿題・テストを確認して、自分で予定を立てよう</span>
+    <div class="stack" style="gap:8px"><h2>時間があるとき</h2><span class="small muted">宿題・テストと、習い事の予定を確認しよう</span>
       <div class="seg" style="gap:6px;flex-wrap:nowrap">${[['morning','朝'],['back',P.off?'日中':'帰り道'],['night','夜'],['weekend','チーム']].map(([id,l])=>`<button data-slot="${id}" aria-pressed="${slot===id}" style="min-width:0;min-height:36px;font-size:12.5px;padding:0 8px;white-space:nowrap">${l}</button>`).join('')}</div>
     </div>
     <button class="now" style="background:${c.bg}" data-go="${c.to}"><div class="when">${c.when}</div><div class="what">${c.what}</div><div class="desc">${c.desc}</div><span class="go">はじめる →</span></button>
@@ -603,19 +604,19 @@ function vBack1(){
   const near = all.filter(x=>isTest(x) && lastDay(x)>=k).sort((a,b)=>a.date<b.date?-1:1).slice(0,3);
   const k2 = dk(addDays(td,2));
   const dues = all.filter(x=>!isTest(x) && x.date>k && x.date<=k2).sort((a,b)=>a.date<b.date?-1:1);
-  const can = both && (none || D.studyMin);
-  return hdr('おかえり、こうき！','home','帰宅チェック 1/2')+`
+  const sched = (P.banners||[]).map(b=>`<div class="row"><span class="tag">終日</span><span class="small">${esc(b)}</span></div>`).join('')
+    + P.items.map(it=>`<div class="row" style="align-items:flex-start"><span class="num muted" style="width:52px;flex:none">${hhmm(it.s)}</span><span style="min-width:0">${esc(it.name)}</span></div>`).join('')
+    + (P.offs||[]).map(t=>`<div class="row"><span class="tag">休み</span><span class="small muted">${esc(t)}</span></div>`).join('');
+  return hdr('おかえり、こうき！','home','帰宅チェック')+`
+  <section class="panel stack"><span class="label">きょうの予定　${md(td)}</span>${sched||'<span class="muted small">習い事はなし</span>'}</section>
   ${confirmQ?`<section class="stack"><span class="label">${confirmQ}</span><div class="seg">${[['yes','あった'],['no','なかった']].map(([v,l])=>`<button data-act="set" data-f="testConfirm" data-v="${v}" aria-pressed="${D.testConfirm===v}">${l}</button>`).join('')}</div>
     ${D.testConfirm==='no'?`<p class="note">予定が変わったのかも。${w===5?'パパ・ママに伝えてね':'念のため確認しよう'}</p>`:''}</section>`:''}
   ${P.off?`<p class="hint">きょうは学校お休み${(P.banners||[]).length?'（'+esc(P.banners[0])+'）':''}。宿題やテスト勉強があれば確認しよう</p>`:DAY_HINT[w]?`<p class="hint">${DAY_HINT[w]}</p>`:''}
   <section class="stack">
     <div class="row"><span class="label grow">きょう、宿題は出た？</span><a class="small" style="color:var(--gold);font-weight:900" href="https://portals.veracross.au/laurus/" target="_blank" rel="noopener">ベラクロスで見る ↗</a></div>
     <div class="seg">${[['yes','出た'],['no','出なかった']].map(([v,l])=>`<button data-act="set" data-f="hw" data-v="${v}" aria-pressed="${D.hw===v}">${l}</button>`).join('')}</div>
-    ${D.hw!=null?`<span class="label">テストの勉強もする？</span><div class="seg">${[['yes','する'],['no','しない']].map(([v,l])=>`<button data-act="set" data-f="testStudy" data-v="${v}" aria-pressed="${D.testStudy===v}">${l}</button>`).join('')}</div>`:''}
-    ${sugg?`<p class="note" style="text-align:center;font-weight:700">${sugg}</p>`:''}
     ${(w===1||w===3)?'<p class="small muted">Englishは不定期テストもあるよ。先生から聞いたらベラクロスもチェックしよう</p>':''}
   </section>
-  ${both && !none?`<section class="stack"><span class="label">${q}</span><div class="seg">${[15,30,45,60].map(v=>`<button data-act="set" data-f="studyMin" data-v="${v}" aria-pressed="${D.studyMin===v}">${v===60?'1時間':v+'分'}</button>`).join('')}</div></section>`:''}
   <section class="stack"><span class="label">ちかづいているテスト</span>
     ${near.length? near.map(t=>{ const ranged = t.end && t.end!==t.date; const ref = ranged && t.date<k ? t.end : t.date; const days = Math.round((parseDk(ref)-parseDk(k))/86400000);
       const dateTxt = ranged ? md(parseDk(t.date)).replace(/（.）/,'')+'〜'+md(parseDk(t.end)).replace(/（.）/,'') : md(parseDk(t.date));
@@ -623,7 +624,7 @@ function vBack1(){
       return `<div class="panel row"><div class="grow" style="min-width:0"><div class="small muted">${esc(t.subj)}${t.kind&&t.kind!=='テスト'?'・'+esc(t.kind):''}</div><div style="font-weight:800">${esc(t.label)}</div></div><div style="text-align:right;flex:none"><div class="small">${dateTxt}</div><div class="small" style="color:${days<=3?'var(--warn)':'var(--muted)'};font-weight:900">${left}</div></div></div>`; }).join('') : '<p class="note">登録されているテストはありません</p>'}
   </section>
   ${dues.length?`<section class="stack"><span class="label">もうすぐしめきり（宿題・提出物）</span>${dues.map(t=>`<div class="panel row"><div class="grow" style="min-width:0"><div class="small muted">${esc(t.subj)}・${esc(t.kind||'提出')}</div><div style="font-weight:800">${esc(t.label)}</div></div><div style="text-align:right;flex:none"><div class="small">${md(parseDk(t.date))}</div><div class="small" style="color:var(--warn);font-weight:900">${t.date===dk(addDays(td,1))?'あした':'あさって'}</div></div></div>`).join('')}</section>`:''}
-  <button class="btn" data-act="toBack2" ${can?'':'disabled'}>つぎへ：きょうの時間の使いかた →</button>`;
+  <button class="btn" data-act="backDone">${D.backDone?'確認ずみ！':'確認できた！'}</button>`;
 }
 
 /* --- 帰宅チェック② --- */
@@ -843,6 +844,7 @@ document.addEventListener('click', e=>{
     case 'jyesterday': go('jishu'); backDays = 1; render(); return;
     case 'backfill': backDays = +b.dataset.n||1; go('night1'); return;
     case 'bfstep': backDays = Math.min(Math.max(backDays + (+b.dataset.d), 1), 7); break;
+    case 'backDone': D.backDone = true; afterChange(); go('home'); return;
     case 'nightDone': D.nightDone = true; afterChange(); go('home'); return;
     case 'mcheck': { D.morningChecks = D.morningChecks||{}; D.morningChecks[b.dataset.id] = !D.morningChecks[b.dataset.id]; break; }
     case 'sleep': { D.sleep = Math.min(Math.max((D.sleep!=null?D.sleep:m(21)) + (+b.dataset.d), m(20)), m(23,30)); break; }
