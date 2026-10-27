@@ -176,12 +176,59 @@ const MENUS = [
 const MENU = Object.fromEntries(MENUS.map(m=>[m.id,m]));
 /* 体づくりプロトコルのYouTube再生リスト（月ごとに更新）。items はメニュー名（空なら動画タイトルを自動で覚える） */
 const PROTO = {
-  mobility: {month:'202609', list:'PLf-Axq5nb0tk', items:[]},
-  motor:    {month:'202609', list:'PLahRX2AyFjDw', items:[]},
-  prep:     {month:'202609', list:'PLeIZLteNUUIo', items:['Jog to Backpedal','Skip FWD-BWD','Hurdle Seat Ride']},
-  plyo:     {month:'202609', list:'PLM1HN0Nurt-I', items:[]},
-  movement: {month:'202609', list:'PLUreSi94abKs', items:[]},
-  medball:  {month:'202609', list:'PLcnjz0elSzZs', items:[]},
+  mobility: {month:'202609', list:'PLf-Axq5nb0tk', place:'室内', gear:'特になし（ストレッチバー・ストレッチポールがあれば尚可）',
+    why:{sub:'体をやわらかく動かす', purpose:'体を大きく、なめらかに動かせるようにする', goal:'バッティングのフォーム、守備の可動域が広がる'},
+    ex:[['Cat Camel','10回ずつ','背中、お腹','そらせるときに息を吐いて、丸めるときに息を吸う。ついてる手はしっかり地面を押す'],
+        ['Hip 90-90 Stretch','5往復','股関節・おしり','前足をしっかりL字に。向きを変えるときは足の位置を変えずに向きを変える'],
+        ['Leg Swing Stretch','すべて10秒×1','太ももの裏','棒や段差がなければ、なしでもストレッチできる'],
+        ['Hip joint stretch','15秒×2','股関節','脚はしっかりL字、手は少し前につき、背中をまっすぐにして体重を後ろにかける'],
+        ['T-Spine Twist Elbow-Bent Side-Lying','10回','胸郭・脇腹','ストレッチポールがなければ地面に膝をつけて行う'],
+        ['Calf Stretch','10秒ホールド＋足踏み20回','ふくらはぎ','なるべく地面にかかとを押し付ける'],
+        ['3D Core Mobility Stretch','各10回','体幹部全面','手はしっかりTの字の姿勢をキープ'],
+        ['Anterior Sling Half Kneeling','15秒×2','太もも前面・お腹','しっかり胸を張り体をひねる。後ろ足は前方向に傾けてしっかりストレッチ']]},
+  motor: {month:'202609', list:'PLahRX2AyFjDw', place:'室内', gear:'棒／チューブ・バランスパッド（あれば尚可）',
+    why:{sub:'バランス・体の使い方', purpose:'自分の体を思った通りにコントロールする力', goal:'ケガをしにくい体、送球や捕球の安定感'},
+    ex:[['1-Leg Lowering 3-Month','10回×2','お腹','腰が浮かないように。体と地面で薄い紙をはさみ、引っ張られても抜けないイメージ'],
+        ['Glutes Bridge Bent-Knee Wave Re-Loading / RNT-Knee','5回×2','おしりなど','上がるときはおしりから、下がるときは背中から。体のパーツを一つずつ順番に動かす。チューブなしでもOK'],
+        ['Tall Kneeling Hip Hinge / Dowel','10回×2','','背中・腰・首から棒が離れないように股関節を動かす'],
+        ['Hip Hinge RNT / Dowel','10回×2','','背中・腰・首から棒が離れないように股関節を動かす'],
+        ['A Scap Prone','3秒キープ×6','背中・肩甲骨','手が地面から離れないように。一番高いところで3秒キープ'],
+        ['Single-leg stance with eyes opened','15秒×2','バランス','眼を開けて'],
+        ['Single-leg stance with eyes open on a Balance Pad','15秒×2','バランス','眼を開けて。パッドなしでも大丈夫'],
+        ['Single-leg stance with eyes closed on a Balance Pad','15秒×2','バランス','眼を閉じて。パッドなしでも大丈夫'],
+        ['Single-leg stance with eyes closed','15秒×2','バランス','眼を閉じて']]},
+  prep: {month:'202609', list:'PLeIZLteNUUIo', place:'室内／屋外', gear:'特になし',
+    why:{sub:'動きの準備運動', purpose:'体を「動ける状態」に目覚めさせる', goal:'練習前に本気モードに切り替える'},
+    ex:[['Jog to Backpedal','2往復','','ストップ動作は一瞬で'],
+        ['Skip FWD-BWD','2往復','','リズミカルに'],
+        ['Flexed Rocking to Hurdle Seat Right-Left-Center','5回','太ももなど','しっかり転がる勢いを使ってストレッチ'],
+        ['Four-direction squat','5周×2','下半身','おしりに効くように股関節を上手に使う'],
+        ['Rapid Response Base Pogo','5秒×2','','とにかく全力で。少し動きをミスしてもOK'],
+        ['Rapid Response Base 2inch Run','5秒×2','','とにかく全力で。少し動きをミスしてもOK']]},
+  plyo: {month:'202609', list:'PLM1HN0Nurt-I', place:'室内', gear:'特になし／跳べるスペース（ジャンプボックスがあれば尚可）',
+    why:{sub:'地面を強く蹴るジャンプ系', purpose:'一番の強みの走力・俊敏性を直接鍛える', goal:'盗塁、一歩目のスタート、守備の反応速度'},
+    ex:[['Ankle Hop','10×2','','地面との接地時間を短く、高く飛ぶ'],
+        ['Lin-Vert Drop to Base','6×2','','一瞬で着地姿勢に（Hip Hinge RNT / Dowelと同じ姿勢）。チューブはなくてもOK'],
+        ['Lin-Vert Box Jump NCM','6×2','','思いっきり飛んで、一瞬で着地姿勢に'],
+        ['Lin-Vert Box Drop to Base','6×2','','一瞬で着地姿勢に'],
+        ['Countermovement Jump','4×2','','思いっきり反動をつけて高く飛ぶ'],
+        ['Broad Jump','4×2','','全力で前に飛ぶ']]},
+  movement: {month:'202609', list:'PLUreSi94abKs', place:'屋外', gear:'壁',
+    why:{sub:'直線加速', purpose:'まっすぐ速く走る技術そのもの', goal:'ベースランニング、送球への反応'},
+    ex:[['10メートルダッシュ','2本','','（動画なし）',1],
+        ['Acceleration Wall Drill - Posture Holds','6秒×3×2','','手はまっすぐ。地面の足はつま先立ち、上げた足は膝を壁に突き刺すように。全力で壁を押す'],
+        ['Acceleration Wall Drill - Load and Lift','6×2','','足を後ろに伸ばした状態から一瞬で加速姿勢に'],
+        ['Acceleration Wall Drill - Leg Drive','10回','','地面との接地時間を最大限短く'],
+        ['Acceleration Wall Drill - March','10×2','','壁を押しながら足を大きく入れ替えて歩く'],
+        ['Acceleration Wall Drill - Single Exchange','10×2','','足を一回素早く入れ替える'],
+        ['10メートルダッシュ','2本','','（動画なし）',1]]},
+  medball: {month:'202609', list:'PLcnjz0elSzZs', place:'屋外', gear:'メディシンボール（必須）',
+    why:{sub:'体幹・回旋力', purpose:'打つ力・投げる力の元になる体の使い方', goal:'バッティングの爆発力、送球の強さ'},
+    ex:[['Lin-Horiz MB Overhead Throw Tall-Kneeling CM','4×2','','全力で'],
+        ['Rot-Para-Horiz MB Throw Tall-Kneeling NCM','6×2','','股関節の力もうまく使って投げる'],
+        ['Tall-Kneeling Medicine Ball Side Throw','6×2','','全力で'],
+        ['Medicine Ball Shovel Toss','6×2','','投げた後、おなかに効いた感じが出るとよい'],
+        ['Kneeling Back Throw','6×2','','全力で']]},
 };
 const GROUPS = [
   {g:'care', name:'ケア・回復（毎日）'},
@@ -792,7 +839,7 @@ function vJishu(){
     ${recs.map(([id,why])=>item(id, `<span class="reason" style="display:block">${why}</span>`)).join('')}
     <p class="small">えらぶのは自分。やりたいメニューからやってOK！</p>
   </section>
-  ${GROUPS.map(G=>`<section class="stack" style="gap:8px"><span class="label">${G.name}</span>${MENUS.filter(M=>M.g===G.g).map(M=>PROTO[M.id] ? `<div class="row" style="gap:8px;align-items:stretch"><div class="grow" style="min-width:0">${item(M.id)}</div><button class="mins" style="flex:none;min-width:64px;font-size:12.5px;line-height:1.2" data-act="proto" data-id="${M.id}">▶<br>動画</button></div>` : item(M.id)).join('')}</section>`).join('')}`;
+  ${GROUPS.map(G=>`<section class="stack" style="gap:8px"><span class="label">${G.name}</span>${MENUS.filter(M=>M.g===G.g).map(M=>PROTO[M.id] ? `<div class="row" style="gap:8px;align-items:stretch"><div class="grow" style="min-width:0">${item(M.id, `<span class="s" style="display:block">（${esc(PROTO[M.id].why.sub)}）${esc(PROTO[M.id].why.purpose)}</span><span class="s" style="display:block;color:var(--gold)">→ ${esc(PROTO[M.id].why.goal)}</span>`)}</div><button class="mins" style="flex:none;min-width:64px;font-size:12.5px;line-height:1.2" data-act="proto" data-id="${M.id}">▶<br>動画</button></div>` : item(M.id)).join('')}</section>`).join('')}`;
 }
 
 /* --- 夜のふり返り① --- */
@@ -921,17 +968,31 @@ function vParent(){
 let protoId = null, ytPlayer = null, ytApiReady = false, ytApiLoading = false;
 function vProto(){
   const M = MENU[protoId], P = PROTO[protoId]; const D = day(todayKey()); const on = !!(D.menus||{})[protoId];
+  const W = P.why;
   return hdr(esc(M.label),'jishu','体づくりプロトコル')+`
+  <section class="panel stack" style="gap:6px;border-color:rgba(224,184,74,.4)">
+    <div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag gold">${esc(W.sub)}</span><span class="tag">${esc(P.place)}</span></div>
+    <div class="small"><span class="muted">何のため：</span><b>${esc(W.purpose)}</b></div>
+    <div class="small"><span class="muted">光揮の目標とのつながり：</span><b style="color:var(--gold)">${esc(W.goal)}</b></div>
+    <div class="small muted">器具：${esc(P.gear)}</div>
+  </section>
   <div style="position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden"><div id="yt" style="position:absolute;inset:0;width:100%;height:100%"></div></div>
-  <section class="stack" style="gap:6px"><div class="row"><span class="label grow">メニュー（${esc(P.month.slice(0,4)+'年'+(+P.month.slice(4))+'月')}）</span><span class="small muted">タップでその動画へ</span></div>
-    <ol id="plist" class="stack" style="gap:6px;margin:0;padding:0;list-style:none"><li class="small muted">読み込み中…</li></ol></section>
+  <section class="stack" style="gap:6px"><div class="row"><span class="label grow">メニュー（${esc(P.month.slice(0,4)+'年'+(+P.month.slice(4))+'月')}）</span><span class="small muted">回数を見ながら。タップでその動画へ</span></div>
+    <ol id="plist" class="stack" style="gap:6px;margin:0;padding:0;list-style:none"></ol></section>
   <button class="btn" data-act="protoDone">${on?'記録ずみ！（もう一度押すと取り消し）':'やった！（記録する）'}</button>
   <a class="small muted" style="text-align:center" href="https://www.youtube.com/playlist?list=${P.list}" target="_blank" rel="noopener">YouTubeアプリで開く ↗</a>`;
 }
 function ytTitle(id, i){ const P = PROTO[protoId]; return (S.ytTitles||{})[id] || P.items[i] || ('メニュー'+(i+1)); }
 function drawPlist(){
-  const ol = document.getElementById('plist'); if(!ol || !ytPlayer || !ytPlayer.getPlaylist) return;
-  const ids = ytPlayer.getPlaylist() || []; const cur = ytPlayer.getPlaylistIndex ? ytPlayer.getPlaylistIndex() : -1;
+  const ol = document.getElementById('plist'); if(!ol) return;
+  const P = PROTO[protoId];
+  const ids = (ytPlayer && ytPlayer.getPlaylist && ytPlayer.getPlaylist()) || []; const cur = (ytPlayer && ytPlayer.getPlaylistIndex) ? ytPlayer.getPlaylistIndex() : -1;
+  if(P.ex && P.ex.length){
+    let vi = 0;
+    ol.innerHTML = P.ex.map((x,i)=>{ const nov = !!x[4]; const v = nov ? -1 : vi++; const on = v>=0 && v===cur;
+      return `<li><button class="check" ${nov?'':`data-act="ytgo" data-i="${v}"`} aria-pressed="${on}" style="min-height:48px;align-items:flex-start"><span class="num" style="width:22px;flex:none;color:var(--gold);padding-top:2px">${i+1}</span><span class="grow" style="min-width:0"><span class="row" style="gap:6px;flex-wrap:wrap;align-items:baseline"><span class="t">${esc(x[0])}</span><span class="tag gold" style="font-size:12px">${esc(x[1])}</span>${on?'<span class="small" style="color:var(--gold);font-weight:900">いまここ</span>':''}</span>${x[2]?`<span class="s" style="display:block">ねらう場所：${esc(x[2])}</span>`:''}<span class="s" style="display:block">${esc(x[3])}</span></span></button></li>`; }).join('');
+    return;
+  }
   if(!ids.length){ ol.innerHTML = '<li class="small muted">読み込み中…</li>'; return; }
   ol.innerHTML = ids.map((id,i)=>`<li><button class="check" data-act="ytgo" data-i="${i}" aria-pressed="${i===cur}" style="min-height:48px"><span class="num" style="width:24px;flex:none;color:var(--gold)">${i+1}</span><span class="grow t" style="min-width:0">${esc(ytTitle(id,i))}</span>${i===cur?'<span class="small" style="color:var(--gold);font-weight:900">いまここ</span>':''}</button></li>`).join('');
 }
@@ -955,7 +1016,7 @@ function render(){
   if(ytPlayer && view!=='proto'){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer = null; }
   if(view==='proto' && ytPlayer){ return; }   // 再生中は描き直さない（動画が止まらないように）
   el.innerHTML = VIEWS[view]();
-  if(view==='proto') mountYT();
+  if(view==='proto'){ drawPlist(); mountYT(); }
   const tabs = [['home','ホーム'],['jishu','自主トレ'],['status','ステータス']];
   document.getElementById('tabs').innerHTML = tabs.map(([v,l])=>`<button data-go="${v}" ${view===v?'aria-current="page"':''}>${l}</button>`).join('');
 }
