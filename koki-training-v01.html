@@ -970,13 +970,14 @@ function vProto(){
   const M = MENU[protoId], P = PROTO[protoId]; const D = day(todayKey()); const on = !!(D.menus||{})[protoId];
   const W = P.why;
   return hdr(esc(M.label),'jishu','体づくりプロトコル')+`
+  <div style="position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--ground);padding-block:6px;margin-block:-6px"><div style="position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden"><div id="yt" style="position:absolute;inset:0;width:100%;height:100%"></div></div></div>
   <section class="panel stack" style="gap:6px;border-color:rgba(224,184,74,.4)">
     <div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag gold">${esc(W.sub)}</span><span class="tag">${esc(P.place)}</span></div>
     <div class="small"><span class="muted">何のため：</span><b>${esc(W.purpose)}</b></div>
     <div class="small"><span class="muted">光揮の目標とのつながり：</span><b style="color:var(--gold)">${esc(W.goal)}</b></div>
     <div class="small muted">器具：${esc(P.gear)}</div>
   </section>
-  <div style="position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden"><div id="yt" style="position:absolute;inset:0;width:100%;height:100%"></div></div>
+
   <section class="stack" style="gap:6px"><div class="row"><span class="label grow">メニュー（${esc(P.month.slice(0,4)+'年'+(+P.month.slice(4))+'月')}）</span><span class="small muted">回数を見ながら。タップでその動画へ</span></div>
     <ol id="plist" class="stack" style="gap:6px;margin:0;padding:0;list-style:none"></ol></section>
   <button class="btn" data-act="protoDone">${on?'記録ずみ！（もう一度押すと取り消し）':'やった！（記録する）'}</button>
