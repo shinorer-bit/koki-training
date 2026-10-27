@@ -349,6 +349,8 @@ function buildPlan(k, evs){
     const base = it.id; if(seen[base]){ it.id = base+'_'+seen[base]; delete it.xp; delete it.choice; seen[base]++; } else seen[base] = 1;
     return it;
   });
+  const moves = evs.filter(e=>!e.allday && e.s!=null && /^移動|へ行く/.test(e.title));
+  items.forEach(it=>{ const mv = moves.find(e=>e.s < it.s && (e.e!=null ? e.e : e.s) <= it.s+5 && (e.e!=null ? e.e : e.s) >= it.s-45); if(mv) it.dep = mv.s; });
   const team = items.some(it=>it.team);
   const off = w===0 || w===6 || banners.some(t=>/学校休み|Break|祝日|旅行/i.test(t));
   const trip = banners.some(t=>/旅行/.test(t));
@@ -465,6 +467,20 @@ let view = 'home', statusOpen = null, slotPick = null;
 const el = document.getElementById('app');
 function go(v){ if(!(v==='night1' || v==='night2' || (v==='jishu' && view==='jishu'))) backDays = 0; view = v; window.scrollTo(0,0); render(); }
 
+function schedHtml(k){
+  const W = dayPlan(k); const cancelled = (S.days[k]||{}).cancelled||{};
+  const its = W.items.map(x=>Object.assign({}, x)).filter(x=>!cancelled[x.id]);
+  its.forEach((it,i)=>{ const nx = its[i+1]; if(nx && nx.dep==null && it.back>0 && nx.to>0 && nx.s>=it.e && nx.s-it.e < it.back+nx.to){ nx.to = nx.s-it.e; nx.fromPlace = it.place; } });
+  const tcol = 'width:96px;flex:none';
+  const rows = its.map(it=>{
+    const dep = it.dep!=null ? it.dep : (it.to ? it.s-it.to : null);
+    const go = dep!=null ? `<div class="row" style="align-items:flex-start"><span class="num" style="${tcol};color:var(--warn);font-weight:700">${hhmm(dep)}</span><span class="small" style="min-width:0;color:var(--warn);font-weight:900">出発${it.place?' → '+esc(it.place):''}${it.fromPlace?'（'+esc(it.fromPlace)+'から）':''}</span></div>` : '';
+    return go + `<div class="row" style="align-items:flex-start"><span class="num muted" style="${tcol}">${hhmm(it.s)}〜${hhmm(it.e)}</span><span style="min-width:0">${esc(it.name)}</span></div>`;
+  }).join('');
+  return (W.banners||[]).map(b=>`<div class="row"><span class="tag">終日</span><span class="small">${esc(b)}</span></div>`).join('')
+    + rows
+    + (W.offs||[]).map(t=>`<div class="row"><span class="tag">休み</span><span class="small muted">${esc(t)}</span></div>`).join('');
+}
 function lessonTimeline(k){
   const D = S.days[k]||{}; const W = dayPlan(k);
   const cancelled = D.cancelled||{};
@@ -567,9 +583,7 @@ function vMorning(){
   const k1 = dk(addDays(td,1));
   const tests = allItems().filter(x=>!isDone(x) && (x.date===k || x.date===k1 || (x.end && x.date<k && x.end>=k))).sort((a,b)=>a.date<b.date?-1:1);
   const when = x=> (x.end && x.end!==x.date && x.date<=k) ? md(parseDk(x.end)).replace(/（.）/,'')+'までのどこか' : x.date===k ? 'きょう' : 'あした';
-  const items = (W.banners||[]).map(b=>`<div class="row"><span class="tag">終日</span><span class="small">${esc(b)}</span></div>`).join('')
-    + W.items.map(it=>`<div class="row" style="align-items:flex-start"><span class="num muted" style="width:52px;flex:none">${hhmm(it.s)}</span><span style="min-width:0">${esc(it.name)}</span></div>`).join('')
-    + (W.offs||[]).map(t=>`<div class="row"><span class="tag">休み</span><span class="small muted">${esc(t)}</span></div>`).join('');
+  const items = schedHtml(k);
   return hdr('おはよう、こうき！','home','朝のチェック')+`
   <section class="panel stack"><span class="label">きょうの予定　${md(td)}</span>${items||'<span class="muted small">習い事はなし</span>'}
     ${tests.map(t=>`<div class="row" style="align-items:flex-start"><span class="tag ${isTest(t)?'gold':''}" style="flex:none">${when(t)}</span><span class="small" style="min-width:0">${esc(t.subj)}${isTest(t)?'':'（'+esc(t.kind||'しめきり')+'）'}：${esc(t.label)}</span></div>`).join('')}
@@ -600,9 +614,7 @@ function vBack1(){
   const near = all.filter(x=>isTest(x) && lastDay(x)>=k).sort((a,b)=>a.date<b.date?-1:1).slice(0,3);
   const k2 = dk(addDays(td,2));
   const dues = all.filter(x=>!isTest(x) && x.date>k && x.date<=k2).sort((a,b)=>a.date<b.date?-1:1);
-  const sched = (P.banners||[]).map(b=>`<div class="row"><span class="tag">終日</span><span class="small">${esc(b)}</span></div>`).join('')
-    + P.items.map(it=>`<div class="row" style="align-items:flex-start"><span class="num muted" style="width:52px;flex:none">${hhmm(it.s)}</span><span style="min-width:0">${esc(it.name)}</span></div>`).join('')
-    + (P.offs||[]).map(t=>`<div class="row"><span class="tag">休み</span><span class="small muted">${esc(t)}</span></div>`).join('');
+  const sched = schedHtml(k);
   return hdr('おかえり、こうき！','home','帰宅チェック')+`
   <section class="panel stack"><span class="label">きょうの予定　${md(td)}</span>${sched||'<span class="muted small">習い事はなし</span>'}</section>
   ${confirmQ?`<section class="stack"><span class="label">${confirmQ}</span><div class="seg">${[['yes','あった'],['no','なかった']].map(([v,l])=>`<button data-act="set" data-f="testConfirm" data-v="${v}" aria-pressed="${D.testConfirm===v}">${l}</button>`).join('')}</div>
