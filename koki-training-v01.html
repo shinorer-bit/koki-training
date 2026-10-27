@@ -482,6 +482,28 @@ function summary(){
   const total = themes.reduce((a,b)=>a+b,0);
   return {themes, total, week, todayXP, streak, month, reached};
 }
+/* ---------- 称号（記録から毎回計算） ---------- */
+function titles(s){
+  const L = lvFrom(s.total,50);
+  const days = Object.entries(S.days);
+  const cnt = f=>days.reduce((a,[k,D])=>a+f(D,k),0);
+  const care = cnt(D=>['stretchpole','staticstr','massage'].filter(id=>(D.menus||{})[id]).length);
+  const protein = cnt(D=>(D.menus||{}).protein?1:0);
+  const zen = cnt(D=>(D.ganbatta||{}).zenryoku?1:0);
+  const gamesPlayed = (S.games||[]).filter(g=>g.play && g.play!=='-' && !/出場なし/.test(g.play)).length;
+  const weeks = {}; days.forEach(([k,D])=>{ const d = parseDk(k); const mk = dk(addDays(d, -((d.getDay()+6)%7))); weeks[mk] = (weeks[mk]||0) + dayXP(k,D).reduce((a,b)=>a+b,0); });
+  const great = Object.values(weeks).filter(v=>v>=WEEK_GREAT).length;
+  const T = [{name:'夏トレ2026 クリア（LV8）', got:true, how:'夏休みのトレーニングをやりきった（LV8・2092XP）'}];
+  const step = (base, list, val, unit, how)=>list.forEach(n=>T.push({name:base.replace('N',n), got:val>=n, how, left: val>=n ? 0 : n-val, unit}));
+  step('LVNに到達', [3,5,10,15], L, 'レベル', 'レベルを上げる');
+  [[7,'1週間つづけた'],[30,'1か月つづけた'],[100,'100日つづけた']].forEach(([n,nm])=>T.push({name:nm, got:!!s.reached[n], how:n+'日つづけて記録する', g:'streak'}));
+  step('がんばった週 N回', [1,5,10], great, '回', '1週間で'+WEEK_GREAT+'XPをこえる');
+  step('ケアの達人 N回', [10,50,100], care, '回', 'ストレッチポール・静的ストレッチ・マッサージを記録');
+  step('プロテイン N日', [10,30,100], protein, '日', 'プロテイン・リカバリードリンクを記録');
+  step('全力プレー N回', [5,20,50], zen, '回', '夜のふり返りで「最後まで全力でやりきった」');
+  step('試合出場 N試合', [5,10,20], gamesPlayed, '試合', '試合に出場する（試合記録から自動）');
+  return T;
+}
 function lvFrom(x, base){ let n = 1; while(base*(n)*(n+1) <= x) n++; return n; }   // LVn → n+1 に必要な累計 base*n*(n+1)
 function lvInfo(x, base){ const n = lvFrom(x,base); const cur = base*(n-1)*n, nxt = base*n*(n+1); return {lv:n, pct:Math.round((x-cur)/(nxt-cur)*100), toNext:nxt-x}; }
 
@@ -571,10 +593,9 @@ function vHome(){
   };
   const c = cards[slot];
   const weekPct = Math.min(100, Math.round(s.week/WEEK_GREAT*100));
+  const TT = titles(s).filter(t=>t.got);
   const badges = ['<span class="badge">夏トレ2026 クリア</span>'];
-  if(s.reached[7]) badges.push('<span class="badge alt">1週間つづけた</span>');
-  if(s.reached[30]) badges.push('<span class="badge alt">1か月つづけた</span>');
-  if(s.reached[100]) badges.push('<span class="badge alt">100日つづけた</span>');
+  if(TT.length>1) badges.push('<span class="badge alt">称号 '+TT.length+'こ</span>');
   return `
   <div class="topbar"><span class="small muted">${md(td)}</span><button class="back" data-go="parent">おうちの人</button></div>
   <button class="panel row" data-go="status" style="text-align:left;width:100%">
@@ -798,7 +819,13 @@ function vStatus(){
     <div class="bar"><i style="width:${I.pct}%;background:${T.color}"></i></div>
     ${open?`<span class="small" style="color:var(--chalk)">${T.how}</span>`:''}</button>`; }).join('')}
   </section>
-  <p class="small muted">称号：夏トレ2026 クリア${s.reached[7]?'・1週間つづけた':''}${s.reached[30]?'・1か月つづけた':''}${s.reached[100]?'・100日つづけた':''}</p>`;
+  ${(()=>{ const T = titles(s); const got = T.filter(t=>t.got), next = T.filter(t=>!t.got);
+    const seenGroup = new Set(); const nx = next.filter(t=>{ const g = t.g || t.name.replace(/[0-9]+/,'N'); if(seenGroup.has(g)) return false; seenGroup.add(g); return true; });
+    return `<section class="panel stack" style="gap:10px"><div class="row"><span class="label grow">称号</span><span class="small muted">${got.length} / ${T.length}</span></div>
+      <div class="row" style="flex-wrap:wrap;gap:6px">${got.map((t,i)=>`<span class="badge${i?' alt':''}">${esc(t.name)}</span>`).join('')}</div>
+      <span class="label" style="margin-top:4px">つぎにねらえる称号</span>
+      ${nx.map(t=>`<div class="row" style="align-items:flex-start"><span class="small" style="flex:none;opacity:.45">🔒</span><span class="small grow" style="min-width:0"><b>${esc(t.name)}</b><br><span class="muted">${esc(t.how)}${t.left?'（あと'+t.left+(t.unit||'')+'）':''}</span></span></div>`).join('')}
+    </section>`; })()}`;
 }
 
 /* --- おうちの人 --- */
