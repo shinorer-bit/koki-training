@@ -299,7 +299,7 @@ function bkPayload(){
   return o;
 }
 async function cloudBackup(){
-  if(!S.bkUrl || bkBusy) return; bkBusy = true; bkPending = false;
+  if(!S.bkUrl || bkBusy || S.viewOnly) return; bkBusy = true; bkPending = false;
   try{
     const sm = summary();
     const body = JSON.stringify({device: S.device||'こうきのiPhone', days: Object.keys(S.days).length, xp: sm.total, data: JSON.stringify(bkPayload())});
@@ -311,7 +311,7 @@ async function cloudBackup(){
   }catch(e){ S.bkInfo = Object.assign({}, S.bkInfo||{}, {ok:false, err: (e && e.name==='AbortError') ? '時間切れ（電波を確認）' : String(e && e.message || e), errAt: Date.now()}); }
   finally{ bkBusy = false; save(); }
 }
-function bkSoon(){ if(!S.bkUrl) return; bkPending = true; clearTimeout(bkTimer); bkTimer = setTimeout(cloudBackup, 15000); }
+function bkSoon(){ if(!S.bkUrl || S.viewOnly) return; bkPending = true; clearTimeout(bkTimer); bkTimer = setTimeout(cloudBackup, 15000); }
 S = load();
 if((S.v||1) < 2){ S.tests = (S.tests||[]).filter(t=>!DEFAULT_TESTS.some(d=>d.date===t.date && d.label===t.label)); S.v = 2; save(); }
 
@@ -947,6 +947,8 @@ function vParent(){
     ${(()=>{ const b = S.bkInfo||{}; const f = t=>{ const d = new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); };
       return !S.bkUrl ? '<p class="small muted">まだ設定されていません。Apps Script の「ウェブアプリのURL」を貼り付けてください</p>'
         : `<p class="small muted">${b.at?'最後にバックアップした時刻：'+f(b.at):'まだバックアップしていません'}</p>${b.ok===false?`<p class="small" style="color:var(--warn)">うまく送れませんでした：${esc(b.err||'')}</p>`:''}`; })()}
+    <div class="row"><span class="small grow" style="min-width:0">${S.viewOnly?'この端末は<b>見るだけ</b>（クラウドに送りません）':'この端末の記録をクラウドに送ります（こうきの端末用）'}</span><button class="mins" style="flex:none;min-width:96px;min-height:36px;font-size:12px" data-act="viewOnly">${S.viewOnly?'送る端末にする':'見るだけにする'}</button></div>
+    ${S.viewOnly&&S.bkUrl?'<button class="btn ghost" data-act="bkLatest">こうきの最新の記録を読み込む</button>':''}
     <label class="small" for="bkurl">ウェブアプリのURL${S.bkUrl?'（設定ずみ。変えるときだけ入力）':''}</label>
     <input id="bkurl" type="url" placeholder="https://script.google.com/macros/s/…/exec">
     <button class="btn ghost" data-act="bkSave">URLを保存</button>
@@ -1096,6 +1098,13 @@ document.addEventListener('click', e=>{
     case 'offset': S.offset = (S.offset||0) + (+b.dataset.d); break;
     case 'offset0': S.offset = 0; break;
     case 'bkSave': { const v = document.getElementById('bkurl').value.trim(); if(!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/.test(v)){ document.getElementById('bkmsg').textContent = 'URLの形が違います（…/exec で終わるURL）'; return; } S.bkUrl = v; S.bkInfo = null; save(); toast('保存しました。バックアップ中…'); cloudBackup().then(render); render(); return; }
+    case 'viewOnly': S.viewOnly = !S.viewOnly; save(); render(); return;
+    case 'bkLatest': { const msg = document.getElementById('bkmsg'); msg.textContent = '読み込み中…';
+      fetch(S.bkUrl+'?a=list').then(r=>r.json()).then(j=>{ if(!j.ok || !j.list.length) throw new Error(j.error||'バックアップがありません'); return fetch(S.bkUrl+'?a=get&row='+j.list[0].row).then(r=>r.json()).then(g=>({g, at:j.list[0].at})); })
+        .then(({g,at})=>{ if(!g.ok) throw new Error(g.error); const o = JSON.parse(g.data); if(!o || !o.days) throw new Error('中身が正しくありません');
+          const keep = {sheetUrl:S.sheetUrl, bkUrl:S.bkUrl, bkInfo:S.bkInfo, sheet:S.sheet, calDays:S.calDays, calInfo:S.calInfo, games:S.games, gameInfo:S.gameInfo, viewOnly:true};
+          S = Object.assign(o, keep); save(); afterChange(); go('parent'); toast(at+' の記録を読み込みました'); })
+        .catch(e=>{ const m = document.getElementById('bkmsg'); if(m) m.textContent = '読み込めませんでした：'+(e.message||e); }); return; }
     case 'bkNow': toast('バックアップ中…'); cloudBackup().then(()=>{ render(); toast(S.bkInfo&&S.bkInfo.ok?'バックアップしました':'送れませんでした'); }); return;
     case 'bkList': { const msg = document.getElementById('bkmsg'); msg.textContent = '読み込み中…';
       fetch(S.bkUrl+'?a=list').then(r=>r.json()).then(j=>{ if(!j.ok) throw new Error(j.error); bkList = j.list; bkPick = null; render(); }).catch(e=>{ const m = document.getElementById('bkmsg'); if(m) m.textContent = '読み込めませんでした：'+(e.message||e); }); return; }
