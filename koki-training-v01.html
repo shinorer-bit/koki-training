@@ -197,7 +197,7 @@ const WEEK = {
   ]},
   2:{home:m(15,45), items:[
     {id:'okada', name:'家庭教師（岡田先生）', place:'自宅', s:m(16), e:m(17,30), to:0, back:0},
-    {id:'kawakami', name:'川上コーチ', place:'東五反田', s:m(18,30), e:m(19), to:8, back:7, choice:'bat'},
+    {id:'kawakami', name:'川上コーチ', place:'東五反田', s:m(18,30), e:m(19), to:10, back:7, choice:'bat'},
     {id:'speak', name:'SpeakSeed', place:'オンライン', s:m(20), e:m(20,50), to:0, back:0},
   ]},
   3:{home:m(15,45), items:[
@@ -327,7 +327,7 @@ const SKIP_EV = /^【休み】|（休み）|^移動|自宅に帰る|へ行く|BD
 const KNOWN = [
   [/キャスク/, {id:'casq', place:'東陽町', to:60, back:45, xp:{2:20}}],
   [/龍之介/, {id:'ryu', place:'自宅', xp:{3:20}}],
-  [/川上/, {id:'kawakami', place:'東五反田', to:8, back:7}],
+  [/川上/, {id:'kawakami', place:'東五反田', to:10, back:7}],
   [/スイミング/, {id:'swim', place:'南青山', to:35, back:35, xp:{1:20}}],
   [/【北砂】/, {id:'team', team:true, fixed:true}],
   [/家庭教師/, {id:'okada', place:'自宅'}],
