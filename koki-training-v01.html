@@ -236,6 +236,26 @@ function load(){
   return freshState();
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+/* ---------- クラウドバックアップ（送るだけ。自動で読み戻さない） ---------- */
+let bkTimer = null, bkBusy = false, bkPending = false, bkList = null, bkPick = null;
+function bkPayload(){
+  const o = {}; Object.keys(S).forEach(k=>{ if(!['sheet','calDays','games','calInfo','gameInfo','bkInfo','bkUrl'].includes(k)) o[k] = S[k]; });
+  return o;
+}
+async function cloudBackup(){
+  if(!S.bkUrl || bkBusy) return; bkBusy = true; bkPending = false;
+  try{
+    const sm = summary();
+    const body = JSON.stringify({device: S.device||'こうきのiPhone', days: Object.keys(S.days).length, xp: sm.total, data: JSON.stringify(bkPayload())});
+    const ctl = new AbortController(); const tm = setTimeout(()=>ctl.abort(), 20000);
+    const r = await fetch(S.bkUrl, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body, signal:ctl.signal}); clearTimeout(tm);
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error||'失敗');
+    S.bkInfo = {at: Date.now(), ok: true}; S.lastBackup = todayKey();
+  }catch(e){ S.bkInfo = Object.assign({}, S.bkInfo||{}, {ok:false, err: (e && e.name==='AbortError') ? '時間切れ（電波を確認）' : String(e && e.message || e), errAt: Date.now()}); }
+  finally{ bkBusy = false; save(); }
+}
+function bkSoon(){ if(!S.bkUrl) return; bkPending = true; clearTimeout(bkTimer); bkTimer = setTimeout(cloudBackup, 15000); }
 S = load();
 if((S.v||1) < 2){ S.tests = (S.tests||[]).filter(t=>!DEFAULT_TESTS.some(d=>d.date===t.date && d.label===t.label)); S.v = 2; save(); }
 
@@ -632,7 +652,7 @@ function vHome(){
     <button class="panel" data-go="jishu" style="text-align:left"><h2>自主トレチェック</h2><span class="small muted">いつでも記録できる</span></button>
     <button class="panel" data-go="status" style="text-align:left"><h2>ステータス</h2><span class="small muted">8テーマのレベル</span></button>
   </div>
-  ${(td.getDay()===0 && S.lastBackup!==todayKey()) || (S.lastBackup && (parseDk(todayKey())-parseDk(S.lastBackup))/86400000>=8) ? '<button class="hint" data-go="parent" style="width:100%;text-align:left">日曜日はバックアップの日：おうちの人 →「記録をコピーする」</button>' : ''}
+  ${!(S.bkUrl && S.bkInfo && S.bkInfo.ok) && (td.getDay()===0 && S.lastBackup!==todayKey()) || (S.lastBackup && (parseDk(todayKey())-parseDk(S.lastBackup))/86400000>=8) ? '<button class="hint" data-go="parent" style="width:100%;text-align:left">日曜日はバックアップの日：おうちの人 →「記録をコピーする」</button>' : ''}
   <button class="btn ghost" data-act="backfill" data-n="1">前の日のふり返りをつける</button>
   <button class="btn ghost" data-act="rest" aria-pressed="${!!D.rest}">${D.rest?'きょうは休養日（継続はとぎれません）':'きょうは休養日にする'}</button>
   <p class="small muted" style="text-align:center">めざせ！全日本選手権優勝・ワールドシリーズ出場</p>`;
@@ -867,7 +887,18 @@ function vParent(){
     <div class="stepper" style="justify-content:space-between"><button data-act="offset" data-d="-1" aria-label="前の日">−</button><output class="small">${md(today())}${S.offset?'（ずらし中）':''}</output><button data-act="offset" data-d="1" aria-label="次の日">＋</button></div>
     ${S.offset?'<button class="btn ghost" data-act="offset0">きょうに戻す</button>':''}
   </section>
-  <section class="panel stack"><span class="label">データのバックアップ</span>
+  <section class="panel stack"><span class="label">クラウドに自動バックアップ</span>
+    ${(()=>{ const b = S.bkInfo||{}; const f = t=>{ const d = new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); };
+      return !S.bkUrl ? '<p class="small muted">まだ設定されていません。Apps Script の「ウェブアプリのURL」を貼り付けてください</p>'
+        : `<p class="small muted">${b.at?'最後にバックアップした時刻：'+f(b.at):'まだバックアップしていません'}</p>${b.ok===false?`<p class="small" style="color:var(--warn)">うまく送れませんでした：${esc(b.err||'')}</p>`:''}`; })()}
+    <label class="small" for="bkurl">ウェブアプリのURL${S.bkUrl?'（設定ずみ。変えるときだけ入力）':''}</label>
+    <input id="bkurl" type="url" placeholder="https://script.google.com/macros/s/…/exec">
+    <button class="btn ghost" data-act="bkSave">URLを保存</button>
+    ${S.bkUrl?'<button class="btn ghost" data-act="bkNow">いますぐバックアップ</button><button class="btn ghost" data-act="bkList">クラウドからもどす（一覧を見る）</button>':''}
+    ${bkList?(bkList.length?bkList.map(x=>`<div class="row"><span class="small grow" style="min-width:0">${esc(x.at)}<br><span class="muted">${esc(String(x.days))}日分・${esc(String(x.xp))}XP</span></span>${bkPick===x.row?`<button class="cancel" data-act="bkRestore" data-row="${x.row}">本当にもどす</button>`:`<button class="mins" style="min-width:64px;min-height:36px;font-size:12.5px" data-act="bkPick" data-row="${x.row}">これに</button>`}</div>`).join(''):'<p class="small muted">まだバックアップがありません</p>'):''}
+    <p id="bkmsg" class="small" style="color:var(--gold)"></p>
+  </section>
+  <section class="panel stack"><span class="label">データのバックアップ（手動）</span>
     <p class="small muted">記録はこの端末の中にだけ保存されています。ときどきコピーして、メモやLINEに保存しておくと安心です</p>
     <button class="btn ghost" data-act="export">記録をコピーする</button>
     <label class="small" for="imp">もどすときは、コピーした内容をここに貼り付け</label>
@@ -886,7 +917,7 @@ function render(){
   document.getElementById('tabs').innerHTML = tabs.map(([v,l])=>`<button data-go="${v}" ${view===v?'aria-current="page"':''}>${l}</button>`).join('');
 }
 function afterChange(){
-  save();
+  save(); bkSoon();
   const s = summary(); const lv = lvFrom(s.total,50);
   if(lastTotal!=null && s.total>lastTotal) toast('+'+(s.total-lastTotal)+' XP');
   S.seen = S.seen||{};
@@ -956,6 +987,15 @@ document.addEventListener('click', e=>{
     case 'tdel': S.tests = S.tests.filter(t=>!(t.date===b.dataset.date && t.label===b.dataset.label)); break;
     case 'offset': S.offset = (S.offset||0) + (+b.dataset.d); break;
     case 'offset0': S.offset = 0; break;
+    case 'bkSave': { const v = document.getElementById('bkurl').value.trim(); if(!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/.test(v)){ document.getElementById('bkmsg').textContent = 'URLの形が違います（…/exec で終わるURL）'; return; } S.bkUrl = v; S.bkInfo = null; save(); toast('保存しました。バックアップ中…'); cloudBackup().then(render); render(); return; }
+    case 'bkNow': toast('バックアップ中…'); cloudBackup().then(()=>{ render(); toast(S.bkInfo&&S.bkInfo.ok?'バックアップしました':'送れませんでした'); }); return;
+    case 'bkList': { const msg = document.getElementById('bkmsg'); msg.textContent = '読み込み中…';
+      fetch(S.bkUrl+'?a=list').then(r=>r.json()).then(j=>{ if(!j.ok) throw new Error(j.error); bkList = j.list; bkPick = null; render(); }).catch(e=>{ const m = document.getElementById('bkmsg'); if(m) m.textContent = '読み込めませんでした：'+(e.message||e); }); return; }
+    case 'bkPick': bkPick = +b.dataset.row; render(); return;
+    case 'bkRestore': { const msg = document.getElementById('bkmsg'); msg.textContent = 'もどしています…';
+      fetch(S.bkUrl+'?a=get&row='+b.dataset.row).then(r=>r.json()).then(j=>{ if(!j.ok) throw new Error(j.error); const o = JSON.parse(j.data); if(!o || !o.days) throw new Error('中身が正しくありません');
+        const keep = {sheetUrl:S.sheetUrl, bkUrl:S.bkUrl, bkInfo:S.bkInfo, sheet:S.sheet, calDays:S.calDays, calInfo:S.calInfo, games:S.games, gameInfo:S.gameInfo};
+        S = Object.assign(o, keep); bkList = null; bkPick = null; save(); afterChange(); go('parent'); toast('記録をもどしました'); }).catch(e=>{ const m = document.getElementById('bkmsg'); if(m) m.textContent = 'もどせませんでした：'+(e.message||e); }); return; }
     case 'export': { S.lastBackup = todayKey(); save(); const txt = JSON.stringify(S); const msg = document.getElementById('pmsg');
       const ta = document.getElementById('imp');
       if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(()=>{ msg.textContent = 'コピーしました。メモなどに貼り付けて保存してください'; }).catch(()=>{ ta.value = txt; ta.select(); msg.textContent = '下の欄の内容を選んでコピーしてください'; }); }
@@ -973,7 +1013,8 @@ autoCredit(); save();
 const s0 = summary(); lastTotal = s0.total; lastLv = lvFrom(s0.total,50);
 render();
 loadSheet(false);
-document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible'){ render(); loadSheet(false); } });
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible'){ render(); loadSheet(false); if(S.bkUrl && (!S.bkInfo || !S.bkInfo.at || Date.now()-S.bkInfo.at > 12*3600*1000)) cloudBackup(); } else if(bkPending){ clearTimeout(bkTimer); cloudBackup(); } });
+if(S.bkUrl && (!S.bkInfo || !S.bkInfo.at || Date.now()-S.bkInfo.at > 12*3600*1000)) setTimeout(cloudBackup, 3000);
 window.__koki = {dayXP, summary, lvInfo, sleepStars, parseCSV, rowsToItems, allItems};
 })();
 </script>
