@@ -290,7 +290,9 @@ async function loadSheet(force){
   }finally{ sheetBusy = false; const ae = document.activeElement; if(typeof render==='function' && el && !(ae && ae.tagName==='INPUT')) render(); }
 }
 function isTest(x){ return /テスト|試験/.test(x.kind||'テスト'); }
-function isDone(x){ return /^(実施済み|対応済み)/.test(x.memo||''); }
+function itemKey(x){ return x.date+'|'+(x.subj||'')+'|'+(x.label||''); }
+function isDone(x){ return /^(実施済み|対応済み)/.test(x.memo||'') || !!(S.doneLocal||{})[itemKey(x)]; }
+function doneBtn(x){ return `<button class="mins" style="flex:none;min-width:56px;min-height:36px;font-size:12.5px" data-act="ldone" data-key="${esc(itemKey(x))}">済み</button>`; }
 function allItems(){
   const base = (S.sheet && S.sheet.items) ? S.sheet.items : DEFAULT_TESTS.map(t=>Object.assign({kind:'テスト', src:'default'}, t));
   return base.concat((S.tests||[]).map(t=>Object.assign({kind:'テスト'}, t, {src:'manual'})));
@@ -568,6 +570,7 @@ function vHome(){
     <button class="panel" data-go="jishu" style="text-align:left"><h2>自主トレチェック</h2><span class="small muted">いつでも記録できる</span></button>
     <button class="panel" data-go="status" style="text-align:left"><h2>ステータス</h2><span class="small muted">8テーマのレベル</span></button>
   </div>
+  ${(td.getDay()===0 && S.lastBackup!==todayKey()) || (S.lastBackup && (parseDk(todayKey())-parseDk(S.lastBackup))/86400000>=8) ? '<button class="hint" data-go="parent" style="width:100%;text-align:left">日曜日はバックアップの日：おうちの人 →「記録をコピーする」</button>' : ''}
   <button class="btn ghost" data-act="backfill" data-n="1">前の日のふり返りをつける</button>
   <button class="btn ghost" data-act="rest" aria-pressed="${!!D.rest}">${D.rest?'きょうは休養日（継続はとぎれません）':'きょうは休養日にする'}</button>
   <p class="small muted" style="text-align:center">めざせ！全日本選手権優勝・ワールドシリーズ出場</p>`;
@@ -586,7 +589,7 @@ function vMorning(){
   const items = schedHtml(k);
   return hdr('おはよう、こうき！','home','朝のチェック')+`
   <section class="panel stack"><span class="label">きょうの予定　${md(td)}</span>${items||'<span class="muted small">習い事はなし</span>'}
-    ${tests.map(t=>`<div class="row" style="align-items:flex-start"><span class="tag ${isTest(t)?'gold':''}" style="flex:none">${when(t)}</span><span class="small" style="min-width:0">${esc(t.subj)}${isTest(t)?'':'（'+esc(t.kind||'しめきり')+'）'}：${esc(t.label)}</span></div>`).join('')}
+    ${tests.map(t=>`<div class="row" style="align-items:flex-start"><span class="tag ${isTest(t)?'gold':''}" style="flex:none">${when(t)}</span><span class="small" style="min-width:0">${esc(t.subj)}${isTest(t)?'':'（'+esc(t.kind||'しめきり')+'）'}：${esc(t.label)}</span><span class="grow"></span>${isTest(t)?'':doneBtn(t)}</div>`).join('')}
   </section>
   <button class="btn ghost" data-go="jishu">朝やったトレーニング・ケアを記録する →</button>
   <section class="grid2">
@@ -629,9 +632,9 @@ function vBack1(){
     ${near.length? near.map(t=>{ const ranged = t.end && t.end!==t.date; const ref = ranged && t.date<k ? t.end : t.date; const days = Math.round((parseDk(ref)-parseDk(k))/86400000);
       const dateTxt = ranged ? md(parseDk(t.date)).replace(/（.）/,'')+'〜'+md(parseDk(t.end)).replace(/（.）/,'') : md(parseDk(t.date));
       const left = ranged && t.date<=k ? '日にち未定' : days===0 ? 'きょう' : 'あと'+days+'日';
-      return `<div class="panel row"><div class="grow" style="min-width:0"><div class="small muted">${esc(t.subj)}${t.kind&&t.kind!=='テスト'?'・'+esc(t.kind):''}</div><div style="font-weight:800">${esc(t.label)}</div></div><div style="text-align:right;flex:none"><div class="small">${dateTxt}</div><div class="small" style="color:${days<=3?'var(--warn)':'var(--muted)'};font-weight:900">${left}</div></div></div>`; }).join('') : '<p class="note">登録されているテストはありません</p>'}
+      return `<div class="panel row"><div class="grow" style="min-width:0"><div class="small muted">${esc(t.subj)}${t.kind&&t.kind!=='テスト'?'・'+esc(t.kind):''}</div><div style="font-weight:800">${esc(t.label)}</div></div><div style="text-align:right;flex:none"><div class="small">${dateTxt}</div><div class="small" style="color:${days<=3?'var(--warn)':'var(--muted)'};font-weight:900">${left}</div></div>${doneBtn(t)}</div>`; }).join('') : '<p class="note">登録されているテストはありません</p>'}
   </section>
-  ${dues.length?`<section class="stack"><span class="label">もうすぐしめきり（宿題・提出物）</span>${dues.map(t=>`<div class="panel row"><div class="grow" style="min-width:0"><div class="small muted">${esc(t.subj)}・${esc(t.kind||'提出')}</div><div style="font-weight:800">${esc(t.label)}</div></div><div style="text-align:right;flex:none"><div class="small">${md(parseDk(t.date))}</div><div class="small" style="color:var(--warn);font-weight:900">${t.date===dk(addDays(td,1))?'あした':'あさって'}</div></div></div>`).join('')}</section>`:''}
+  ${dues.length?`<section class="stack"><span class="label">もうすぐしめきり（宿題・提出物）</span>${dues.map(t=>`<div class="panel row"><div class="grow" style="min-width:0"><div class="small muted">${esc(t.subj)}・${esc(t.kind||'提出')}</div><div style="font-weight:800">${esc(t.label)}</div></div><div style="text-align:right;flex:none"><div class="small">${md(parseDk(t.date))}</div><div class="small" style="color:var(--warn);font-weight:900">${t.date===dk(addDays(td,1))?'あした':'あさって'}</div></div>${doneBtn(t)}</div>`).join('')}</section>`:''}
   <button class="btn" data-act="backDone">${D.backDone?'確認ずみ！':'確認できた！'}</button>`;
 }
 
@@ -681,8 +684,11 @@ function vJishu(){
   const item = (id, extra)=>{ const M = MENU[id]; const on = !!menus[id]; return `<button class="check" data-act="menu" data-id="${id}" aria-pressed="${on}">${checkBox(on)}<span class="grow"><span class="t">${esc(M.label)}</span>${extra||(M.sub?`<span class="s" style="display:block">${esc(M.sub)}</span>`:'')}</span><span class="dot" style="background:${THEMES[M.th].color}" title="${THEMES[M.th].name}"></span></button>`; };
   const done = Object.values(menus).filter(Boolean).length;
   const dsw = `<section class="panel stack" style="gap:8px"><span class="label">記録する日</span><div class="stepper" style="justify-content:space-between"><button data-act="jstep" data-d="1" aria-label="前の日">−</button><output class="small">${backDays===0?'きょう　':backDays===1?'きのう　':''}${md(today())}</output><button data-act="jstep" data-d="-1" aria-label="次の日">＋</button></div>${backDays>0?'<span class="small muted">きのうやったことも、ここから記録できます（7日前まで）</span>':''}</section>`;
+  const TP = dayPlan(k);
+  const teamQ = (TP.team || TP.weekend || today().getDay()===0 || today().getDay()===6) ? `<section class="panel stack" style="gap:8px"><span class="label">チームの練習・試合</span><div class="seg">${[['practice','練習'],['game','試合'],['none','なし']].map(([v,l])=>`<button data-act="set" data-f="team" data-v="${v}" aria-pressed="${(D.team||'none')===v}">${l}</button>`).join('')}</div></section>` : '';
   return hdr('自主トレチェック','home')+`
   ${dsw}
+  ${teamQ}
   <div class="row"><p class="small muted grow" style="min-width:0">やったらタップ。いつでも記録できるよ</p><span style="white-space:nowrap;flex:none"><span class="num" style="font-size:24px;color:var(--gold)">${done}</span><span class="small muted"> こ</span></span></div>
   ${mine.length?`<section class="panel stack" style="border-color:rgba(143,187,230,.35)"><span class="label" style="color:var(--t7)">自分で決めたメニュー</span>${mine.map(id=>item(id)).join('')}${mine.every(id=>menus[id])?'<p class="hint">決めたとおりできた！ ⑧生活習慣 +10XP</p>':''}</section>`:''}
   <section class="panel stack" style="border-color:rgba(224,184,74,.35)"><span class="label" style="color:var(--gold)">迷ったらこれ！きょうのおすすめ</span>
@@ -770,6 +776,10 @@ function vParent(){
   <section class="panel stack"><span class="label">${S.sheet&&S.sheet.items?'シートから読んだ予定（これから）':'最初から入っている予定'}</span>
     ${fromSheet.length? fromSheet.map(t=>`<div class="row" style="align-items:flex-start"><span class="small num" style="width:86px;flex:none">${(t.date.slice(0,4)!==k.slice(0,4)?t.date.slice(0,4)+'/':'')+t.date.slice(5).replace('-','/')}${t.end&&t.end!==t.date?'〜'+t.end.slice(5).replace('-','/'):''}</span><span class="small grow" style="min-width:0">${esc(t.subj)}・${esc(t.kind||'テスト')}：${esc(t.label)}</span></div>`).join('') : '<p class="note">これからの予定はありません</p>'}
   </section>
+  <section class="panel stack"><span class="label">こうきが「済み」にしたもの</span>
+    ${Object.keys(S.doneLocal||{}).length? Object.entries(S.doneLocal).sort().map(([key,when])=>{ const [d,sj,lb] = key.split('|'); return `<div class="row" style="align-items:flex-start"><span class="small num" style="width:86px;flex:none">${d.slice(5).replace('-','/')}</span><span class="small grow" style="min-width:0">${esc(sj)}：${esc(lb)}<br><span class="muted">${String(when).slice(5).replace('-','/')}に済み</span></span><button class="icon-btn" data-act="lundo" data-key="${esc(key)}" aria-label="取り消す">↩</button></div>`; }).join('') : '<p class="small muted">まだありません</p>'}
+    <span class="small muted">シートの「状態・メモ」も「対応済み」にしておくと、どの端末でも消えます</span>
+  </section>
   <section class="panel stack"><span class="label">この端末で追加したテスト</span>
     ${manual.length? manual.map(t=>`<div class="row"><span class="small num" style="width:86px">${t.date}</span><span class="small grow">${esc(t.subj)}：${esc(t.label)}</span><button class="icon-btn" data-act="tdel" data-date="${t.date}" data-label="${esc(t.label)}" aria-label="けす">✕</button></div>`).join('') : '<p class="small muted">シートにない急なテストだけ、ここで追加してください</p>'}
     <div class="sep"></div>
@@ -852,6 +862,8 @@ document.addEventListener('click', e=>{
     case 'jyesterday': go('jishu'); backDays = 1; render(); return;
     case 'backfill': backDays = +b.dataset.n||1; go('night1'); return;
     case 'bfstep': backDays = Math.min(Math.max(backDays + (+b.dataset.d), 1), 7); break;
+    case 'ldone': { S.doneLocal = S.doneLocal||{}; S.doneLocal[b.dataset.key] = k; toast('済みにしたよ！'); save(); render(); return; }
+    case 'lundo': { if(S.doneLocal) delete S.doneLocal[b.dataset.key]; save(); render(); return; }
     case 'backDone': D.backDone = true; afterChange(); go('home'); return;
     case 'nightDone': D.nightDone = true; afterChange(); go('home'); return;
     case 'mcheck': { D.morningChecks = D.morningChecks||{}; D.morningChecks[b.dataset.id] = !D.morningChecks[b.dataset.id]; break; }
@@ -869,7 +881,7 @@ document.addEventListener('click', e=>{
     case 'tdel': S.tests = S.tests.filter(t=>!(t.date===b.dataset.date && t.label===b.dataset.label)); break;
     case 'offset': S.offset = (S.offset||0) + (+b.dataset.d); break;
     case 'offset0': S.offset = 0; break;
-    case 'export': { const txt = JSON.stringify(S); const msg = document.getElementById('pmsg');
+    case 'export': { S.lastBackup = todayKey(); save(); const txt = JSON.stringify(S); const msg = document.getElementById('pmsg');
       const ta = document.getElementById('imp');
       if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(()=>{ msg.textContent = 'コピーしました。メモなどに貼り付けて保存してください'; }).catch(()=>{ ta.value = txt; ta.select(); msg.textContent = '下の欄の内容を選んでコピーしてください'; }); }
       else { ta.value = txt; ta.select(); msg.textContent = '下の欄の内容を選んでコピーしてください'; }
