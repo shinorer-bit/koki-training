@@ -284,6 +284,16 @@ async function loadSheet(force){
         S.calInfo = {at:Date.now(), from:c.from, to:c.to, err:null};
       }catch(e2){ S.calInfo = Object.assign({}, S.calInfo||{}, {err:(e2 && e2.name==='AbortError') ? '時間切れ（電波を確認）' : String(e2 && e2.message || e2)}); }
     }
+    const gu = gameUrl();
+    if(gu){
+      try{
+        const ctl3 = new AbortController(); const tm3 = setTimeout(()=>ctl3.abort(), 10000);
+        const r3 = await fetch(gu, {cache:'no-store', signal:ctl3.signal}); clearTimeout(tm3);
+        if(!r3.ok) throw new Error('HTTP '+r3.status);
+        S.games = rowsToGames(parseCSV(await r3.text())); S.gameInfo = {at:Date.now(), n:S.games.length, err:null};
+      }catch(e3){ S.gameInfo = Object.assign({}, S.gameInfo||{}, {err:'試合記録シートを読めません（公開設定を確認）'}); }
+    }
+    autoCredit();
     save();
   }catch(e){
     S.sheet = Object.assign({items:null, at:0}, S.sheet||{}, {err:(e && e.name==='AbortError') ? '時間切れ（電波を確認）' : String(e && e.message || e), errAt:Date.now()}); save();
@@ -300,7 +310,38 @@ function allItems(){
 function lastDay(x){ return x.end || x.date; }
 
 /* ---------- Googleカレンダー（Koki Schedule）→「カレンダー」シート → アプリ ---------- */
+const GAME_GID = 3;
 const CAL_GID = 4;   // スプレッドシート内「カレンダー」シートのID
+function gameUrl(){ const u = sheetUrl(); if(!u) return ''; return /[?&]gid=\d+/.test(u) ? u.replace(/([?&]gid=)\d+/, '$1'+GAME_GID) : ''; }
+function rowsToGames(rows){
+  const h = (rows[0]||[]).map(x=>x.trim()); const ix = n=>h.indexOf(n);
+  const iD=ix('日程'); if(iD<0) throw new Error('「日程」の列が見つかりません');
+  const g = (r,n)=>{ const i = ix(n); return i<0 ? '' : String(r[i]||'').trim(); };
+  return rows.slice(1).map(r=>({date:toDk(r[iD]), cup:g(r,'大会'), round:g(r,'ラウンド'), vs:g(r,'対戦'), score:g(r,'スコア'), result:g(r,'結果'), play:g(r,'光揮の出場'), bat:g(r,'打席'), field:g(r,'守備')})).filter(x=>x.date);
+}
+/* 習い事・チームの日の自動記録（休んだ日だけ本人が「休み」にする） */
+const AUTO_FROM = '2026-10-09';
+function autoCredit(){
+  const tk = dk(new Date(new Date().setHours(12,0,0,0)));
+  const nowMin = new Date().getHours()*60 + new Date().getMinutes();
+  const games = new Set((S.games||[]).map(g=>g.date));
+  Object.keys(S.calDays||{}).forEach(k=>{
+    if(k < AUTO_FROM || k > tk) return;
+    const P = dayPlan(k); const D = day(k);
+    D.cancelled = D.cancelled||{};
+    P.items.forEach(it=>{
+      if(!(it.xp || it.choice)) return;
+      if(k === tk && nowMin < it.e) return;
+      D.lessons = D.lessons||{};
+      if(D.lessons[it.id] == null && !D.cancelled[it.id]){ D.lessons[it.id] = 'yes'; D.autoL = true; }
+    });
+    if(P.team && (k < tk || nowMin >= m(12))){
+      if(D.team == null && !D.teamSet){ D.team = games.has(k) ? 'game' : 'practice'; D.autoTeam = true; }
+      else if(D.autoTeam && D.team === 'practice' && games.has(k)) D.team = 'game';
+    }
+  });
+  Object.keys(S.days).forEach(k=>{ const D = S.days[k]; if(D.autoTeam && D.team==='practice' && games.has(k)) D.team = 'game'; });
+}
 function calUrl(){ const u = sheetUrl(); if(!u) return ''; return /[?&]gid=\d+/.test(u) ? u.replace(/([?&]gid=)\d+/, '$1'+CAL_GID) : ''; }
 function toMin(v){ const x = String(v||'').trim().match(/^(\d{1,2}):(\d{2})/); return x ? (+x[1])*60 + (+x[2]) : null; }
 function rowsToCal(rows){
@@ -685,10 +726,16 @@ function vJishu(){
   const done = Object.values(menus).filter(Boolean).length;
   const dsw = `<section class="panel stack" style="gap:8px"><span class="label">記録する日</span><div class="stepper" style="justify-content:space-between"><button data-act="jstep" data-d="1" aria-label="前の日">−</button><output class="small">${backDays===0?'きょう　':backDays===1?'きのう　':''}${md(today())}</output><button data-act="jstep" data-d="-1" aria-label="次の日">＋</button></div>${backDays>0?'<span class="small muted">きのうやったことも、ここから記録できます（7日前まで）</span>':''}</section>`;
   const TP = dayPlan(k);
-  const teamQ = (TP.team || TP.weekend || today().getDay()===0 || today().getDay()===6) ? `<section class="panel stack" style="gap:8px"><span class="label">チームの練習・試合</span><div class="seg">${[['practice','練習'],['game','試合'],['none','なし']].map(([v,l])=>`<button data-act="set" data-f="team" data-v="${v}" aria-pressed="${(D.team||'none')===v}">${l}</button>`).join('')}</div></section>` : '';
+  const GL = (S.games||[]).filter(g=>g.date===k);
+  const gHtml = GL.map(g=>`<div class="stack" style="gap:2px;border-top:1px solid var(--line);padding-top:8px"><span style="font-weight:900">${esc(g.cup)} ${esc(g.round)}　vs ${esc(g.vs)}　${esc(g.score)} ${esc(g.result)}</span>${g.play&&g.play!=='-'?`<span class="small">こうき：${esc(g.play)}</span>`:''}${g.bat&&g.bat!=='-'?`<span class="small muted">打撃：${esc(g.bat)}</span>`:''}${g.field&&g.field!=='-'?`<span class="small muted">守備：${esc(g.field)}</span>`:''}</div>`).join('');
+  const LI = TP.items.filter(it=>!it.team && (it.xp||it.choice));
+  const LS = D.lessons||{};
+  const lessonQ = LI.length ? `<section class="panel stack" style="gap:8px"><span class="label">この日の習い事（休んだときだけ「休み」に）</span>${LI.map(it=>{ const st = LS[it.id] || ((D.cancelled||{})[it.id]?'no':null); return `<div class="row"><span class="grow small" style="min-width:0;font-weight:800">${esc(it.name)}</span><div class="seg" style="flex:none">${[['yes','行った'],['no','休み']].map(([v,l])=>`<button data-act="lesson" data-id="${it.id}" data-v="${v}" aria-pressed="${st===v}" style="min-width:64px;min-height:36px;font-size:13px">${l}</button>`).join('')}</div></div>`; }).join('')}<span class="small muted">終わった習い事は自動で「行った」になります</span></section>` : '';
+  const teamQ = (TP.team || TP.weekend || today().getDay()===0 || today().getDay()===6) ? `<section class="panel stack" style="gap:8px"><span class="label">チームの練習・試合</span><div class="seg">${[['practice','練習'],['game','試合'],['none','なし']].map(([v,l])=>`<button data-act="set" data-f="team" data-v="${v}" aria-pressed="${(D.team||'none')===v}">${l}</button>`).join('')}</div>${gHtml}</section>` : '';
   return hdr('自主トレチェック','home')+`
   ${dsw}
   ${teamQ}
+  ${lessonQ}
   <div class="row"><p class="small muted grow" style="min-width:0">やったらタップ。いつでも記録できるよ</p><span style="white-space:nowrap;flex:none"><span class="num" style="font-size:24px;color:var(--gold)">${done}</span><span class="small muted"> こ</span></span></div>
   ${mine.length?`<section class="panel stack" style="border-color:rgba(143,187,230,.35)"><span class="label" style="color:var(--t7)">自分で決めたメニュー</span>${mine.map(id=>item(id)).join('')}${mine.every(id=>menus[id])?'<p class="hint">決めたとおりできた！ ⑧生活習慣 +10XP</p>':''}</section>`:''}
   <section class="panel stack" style="border-color:rgba(224,184,74,.35)"><span class="label" style="color:var(--gold)">迷ったらこれ！きょうのおすすめ</span>
@@ -761,6 +808,7 @@ function vParent(){
   const fmt = t=>{ const d = new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); };
   const status = !url ? '<p class="note">まだ設定されていません。いまは手入力のテスト予定を表示しています</p>'
     : `<p class="small muted">${sh.at?'最後に読み込んだ時刻：'+fmt(sh.at)+'（'+(sh.items||[]).length+'行）':'まだ読み込めていません'}</p>${sh.err?`<p class="small" style="color:var(--warn)">読み込みエラー：${esc(sh.err)}${sh.at?'（前回の内容を表示中）':''}</p>`:''}
+      ${(()=>{ const gi = S.gameInfo||{}; return `<p class="small muted">試合記録：${gi.err?'<span style="color:var(--warn)">'+esc(gi.err)+'</span>':gi.at?gi.n+'試合を読み込みずみ':'まだ読み込めていません'}</p>`; })()}
       ${(()=>{ const ci = S.calInfo||{}; return `<p class="small muted">カレンダー：${ci.from?ci.from.slice(5).replace('-','/')+'〜'+ci.to.slice(5).replace('-','/')+' の予定を読み込みずみ（'+fmt(ci.at)+'）':'まだ読み込めていません（曜日パターンで表示中）'}</p>${ci.err?`<p class="small" style="color:var(--warn)">カレンダー読み込みエラー：${esc(ci.err)}</p>`:''}`; })()}`;
   const fromSheet = allItems().filter(x=>x.src!=='manual' && lastDay(x)>=k && !isDone(x)).sort((a,b)=>a.date<b.date?-1:1);
   const manual = (S.tests||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
@@ -835,7 +883,7 @@ document.addEventListener('click', e=>{
   if(b.dataset.go){ go(b.dataset.go); return; }
   const a = b.dataset.act, k = todayKey(), D = day(k);
   switch(a){
-    case 'set': { const f = b.dataset.f; let v = b.dataset.v; if(f==='studyMin') v = Number(v); if(f==='team' && v==='none') v = null;
+    case 'set': { const f = b.dataset.f; let v = b.dataset.v; if(f==='studyMin') v = Number(v); if(f==='team'){ D.teamSet = true; D.autoTeam = false; } if(f==='team' && v==='none') v = null;
       D[f] = (D[f]===v && f!=='team') ? null : v;
       if(f==='hw'||f==='testStudy'){ D.studyMin = (D.hw==='no'&&D.testStudy==='no') ? 0 : (D.studyMin||null); }
       break; }
@@ -894,6 +942,7 @@ document.addEventListener('input', e=>{
   if(e.target.id==='weight'){ const v = parseFloat(e.target.value); const D = day(todayKey()); D.weight = isFinite(v) && v>0 ? v : null; save(); }  // 入力中は画面を描き直さない
 });
 
+autoCredit(); save();
 const s0 = summary(); lastTotal = s0.total; lastLv = lvFrom(s0.total,50);
 render();
 loadSheet(false);
