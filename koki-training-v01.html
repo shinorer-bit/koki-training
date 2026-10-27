@@ -174,6 +174,15 @@ const MENUS = [
   {id:'core', g:'kin', label:'体幹トレーニング', sub:'毎日OK', th:1},
 ];
 const MENU = Object.fromEntries(MENUS.map(m=>[m.id,m]));
+/* 体づくりプロトコルのYouTube再生リスト（月ごとに更新）。items はメニュー名（空なら動画タイトルを自動で覚える） */
+const PROTO = {
+  mobility: {month:'202609', list:'PLf-Axq5nb0tk', items:[]},
+  motor:    {month:'202609', list:'PLahRX2AyFjDw', items:[]},
+  prep:     {month:'202609', list:'PLeIZLteNUUIo', items:['Jog to Backpedal','Skip FWD-BWD','Hurdle Seat Ride']},
+  plyo:     {month:'202609', list:'PLM1HN0Nurt-I', items:[]},
+  movement: {month:'202609', list:'PLUreSi94abKs', items:[]},
+  medball:  {month:'202609', list:'PLcnjz0elSzZs', items:[]},
+};
 const GROUPS = [
   {g:'care', name:'ケア・回復（毎日）'},
   {g:'proto', name:'体づくりプロトコル'},
@@ -783,7 +792,7 @@ function vJishu(){
     ${recs.map(([id,why])=>item(id, `<span class="reason" style="display:block">${why}</span>`)).join('')}
     <p class="small">えらぶのは自分。やりたいメニューからやってOK！</p>
   </section>
-  ${GROUPS.map(G=>`<section class="stack" style="gap:8px"><span class="label">${G.name}</span>${MENUS.filter(M=>M.g===G.g).map(M=>item(M.id)).join('')}</section>`).join('')}`;
+  ${GROUPS.map(G=>`<section class="stack" style="gap:8px"><span class="label">${G.name}</span>${MENUS.filter(M=>M.g===G.g).map(M=>PROTO[M.id] ? `<div class="row" style="gap:8px;align-items:stretch"><div class="grow" style="min-width:0">${item(M.id)}</div><button class="mins" style="flex:none;min-width:64px;font-size:12.5px;line-height:1.2" data-act="proto" data-id="${M.id}">▶<br>動画</button></div>` : item(M.id)).join('')}</section>`).join('')}`;
 }
 
 /* --- 夜のふり返り① --- */
@@ -909,10 +918,44 @@ function vParent(){
 }
 
 /* ---------- 描画とイベント ---------- */
-const VIEWS = {home:vHome, morning:vMorning, back1:vBack1, back2:vBack2, jishu:vJishu, night1:vNight1, night2:vNight2, status:vStatus, parent:vParent};
+let protoId = null, ytPlayer = null, ytApiReady = false, ytApiLoading = false;
+function vProto(){
+  const M = MENU[protoId], P = PROTO[protoId]; const D = day(todayKey()); const on = !!(D.menus||{})[protoId];
+  return hdr(esc(M.label),'jishu','体づくりプロトコル')+`
+  <div style="position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden"><div id="yt" style="position:absolute;inset:0;width:100%;height:100%"></div></div>
+  <section class="stack" style="gap:6px"><div class="row"><span class="label grow">メニュー（${esc(P.month.slice(0,4)+'年'+(+P.month.slice(4))+'月')}）</span><span class="small muted">タップでその動画へ</span></div>
+    <ol id="plist" class="stack" style="gap:6px;margin:0;padding:0;list-style:none"><li class="small muted">読み込み中…</li></ol></section>
+  <button class="btn" data-act="protoDone">${on?'記録ずみ！（もう一度押すと取り消し）':'やった！（記録する）'}</button>
+  <a class="small muted" style="text-align:center" href="https://www.youtube.com/playlist?list=${P.list}" target="_blank" rel="noopener">YouTubeアプリで開く ↗</a>`;
+}
+function ytTitle(id, i){ const P = PROTO[protoId]; return (S.ytTitles||{})[id] || P.items[i] || ('メニュー'+(i+1)); }
+function drawPlist(){
+  const ol = document.getElementById('plist'); if(!ol || !ytPlayer || !ytPlayer.getPlaylist) return;
+  const ids = ytPlayer.getPlaylist() || []; const cur = ytPlayer.getPlaylistIndex ? ytPlayer.getPlaylistIndex() : -1;
+  if(!ids.length){ ol.innerHTML = '<li class="small muted">読み込み中…</li>'; return; }
+  ol.innerHTML = ids.map((id,i)=>`<li><button class="check" data-act="ytgo" data-i="${i}" aria-pressed="${i===cur}" style="min-height:48px"><span class="num" style="width:24px;flex:none;color:var(--gold)">${i+1}</span><span class="grow t" style="min-width:0">${esc(ytTitle(id,i))}</span>${i===cur?'<span class="small" style="color:var(--gold);font-weight:900">いまここ</span>':''}</button></li>`).join('');
+}
+function mountYT(){
+  if(view!=='proto') return;
+  if(!ytApiReady){
+    if(!ytApiLoading){ ytApiLoading = true; window.onYouTubeIframeAPIReady = ()=>{ ytApiReady = true; mountYT(); }; const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(sc); }
+    return;
+  }
+  const P = PROTO[protoId];
+  ytPlayer = new YT.Player('yt', {width:'100%', height:'100%', playerVars:{listType:'playlist', list:P.list, playsinline:1, rel:0, modestbranding:1},
+    events:{
+      onReady: ()=>{ let n = 0; const t = setInterval(()=>{ drawPlist(); if((ytPlayer.getPlaylist()||[]).length || ++n>20) clearInterval(t); }, 500); },
+      onStateChange: ()=>{ try{ const vd = ytPlayer.getVideoData(); if(vd && vd.video_id && vd.title){ S.ytTitles = S.ytTitles||{}; if(S.ytTitles[vd.video_id]!==vd.title){ S.ytTitles[vd.video_id] = vd.title; save(); } } }catch(e){} drawPlist(); },
+      onError: ()=>{ const ol = document.getElementById('plist'); if(ol) ol.innerHTML = '<li class="small" style="color:var(--warn)">動画を読み込めませんでした。再生リストが「限定公開」か、リンクが正しいかを確認してください</li>'; }
+    }});
+}
+const VIEWS = {proto:vProto, home:vHome, morning:vMorning, back1:vBack1, back2:vBack2, jishu:vJishu, night1:vNight1, night2:vNight2, status:vStatus, parent:vParent};
 let lastTotal = null, lastLv = null;
 function render(){
+  if(ytPlayer && view!=='proto'){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer = null; }
+  if(view==='proto' && ytPlayer){ return; }   // 再生中は描き直さない（動画が止まらないように）
   el.innerHTML = VIEWS[view]();
+  if(view==='proto') mountYT();
   const tabs = [['home','ホーム'],['jishu','自主トレ'],['status','ステータス']];
   document.getElementById('tabs').innerHTML = tabs.map(([v,l])=>`<button data-go="${v}" ${view===v?'aria-current="page"':''}>${l}</button>`).join('');
 }
@@ -964,6 +1007,9 @@ document.addEventListener('click', e=>{
       if(a==='mmove'){ const i = +b.dataset.i, j = i + (+b.dataset.d); if(j>=0 && j<P.blocks.length) [P.blocks[i],P.blocks[j]] = [P.blocks[j],P.blocks[i]]; }
       if(a==='mdel') P.blocks.splice(+b.dataset.i,1);
       break; }
+    case 'proto': protoId = b.dataset.id; go('proto'); return;
+    case 'ytgo': if(ytPlayer && ytPlayer.playVideoAt) ytPlayer.playVideoAt(+b.dataset.i); return;
+    case 'protoDone': { D.menus = D.menus||{}; D.menus[protoId] = !D.menus[protoId]; const was = D.menus[protoId]; if(ytPlayer){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer = null; } afterChange(); go('jishu'); if(was) toast('記録したよ！'); return; }
     case 'jstep': backDays = Math.min(Math.max(backDays + (+b.dataset.d), 0), 7); break;
     case 'jyesterday': go('jishu'); backDays = 1; render(); return;
     case 'backfill': backDays = +b.dataset.n||1; go('night1'); return;
