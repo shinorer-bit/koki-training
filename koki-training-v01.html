@@ -296,7 +296,7 @@ function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} 
 /* ---------- クラウドバックアップ（送るだけ。自動で読み戻さない） ---------- */
 let bkTimer = null, bkBusy = false, bkPending = false, bkList = null, bkPick = null;
 function bkPayload(){
-  const o = {}; Object.keys(S).forEach(k=>{ if(!['sheet','calDays','games','calInfo','gameInfo','bkInfo','bkUrl'].includes(k)) o[k] = S[k]; });
+  const o = {}; Object.keys(S).forEach(k=>{ if(!['sheet','calDays','games','calInfo','gameInfo','bkInfo','bkUrl','mergedAt','bkHash','device','viewOnly'].includes(k)) o[k] = S[k]; });
   return o;
 }
 async function cloudBackup(){
@@ -304,14 +304,54 @@ async function cloudBackup(){
   try{
     const sm = summary();
     if(sm.total===0 || Object.keys(S.days).filter(k=>Object.keys(S.days[k]).length).length < 2) throw new Error('記録がまだほとんどないので送りませんでした');
-    const body = JSON.stringify({device: S.device||'こうきのiPhone', days: Object.keys(S.days).length, xp: sm.total, data: JSON.stringify(bkPayload())});
+    const data = JSON.stringify(bkPayload());
+    let h = 0; for(let i=0;i<data.length;i++){ h = (h*31 + data.charCodeAt(i))|0; }
+    if(S.bkHash === h && S.bkInfo && S.bkInfo.ok){ return; }   // 変わっていなければ送らない
+    const body = JSON.stringify({device: S.device||'こうきのiPhone', days: Object.keys(S.days).length, xp: sm.total, data});
     const ctl = new AbortController(); const tm = setTimeout(()=>ctl.abort(), 20000);
     const r = await fetch(S.bkUrl, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body, signal:ctl.signal}); clearTimeout(tm);
     const j = await r.json();
     if(!j.ok) throw new Error(j.error||'失敗');
-    S.bkInfo = {at: Date.now(), ok: true}; S.lastBackup = todayKey();
+    S.bkInfo = {at: Date.now(), ok: true}; S.lastBackup = todayKey(); S.bkHash = h;
   }catch(e){ S.bkInfo = Object.assign({}, S.bkInfo||{}, {ok:false, err: (e && e.name==='AbortError') ? '時間切れ（電波を確認）' : String(e && e.message || e), errAt: Date.now()}); }
   finally{ bkBusy = false; save(); }
+}
+/* ---------- 2台目（iPadなど）との同期：ほかの端末の最新の記録を「足し合わせる」 ---------- */
+function mergeDay(a, b){
+  const OR = ['morningDone','nightDone','backDone','rest','weighed','planSaved','teamSet'];
+  OR.forEach(f=>{ if(b[f]) a[f] = true; });
+  ['menus','ganbatta','morningChecks','cancelled'].forEach(f=>{ if(b[f]){ a[f] = a[f]||{}; Object.keys(b[f]).forEach(id=>{ if(b[f][id]) a[f][id] = b[f][id]; }); } });
+  if(b.lessons){ a.lessons = a.lessons||{}; Object.keys(b.lessons).forEach(id=>{ if(b.lessons[id]==='no' || a.lessons[id]==null) a.lessons[id] = b.lessons[id]; }); }
+  ['weight','sleep','hw','testConfirm','testStudy','studyMin','kawakami','plan','morningPlan'].forEach(f=>{ if(a[f]==null && b[f]!=null) a[f] = b[f]; });
+  if(b.team!=null && (a.team==null || (b.teamSet && !a.teamSet))) a.team = b.team;
+  if(a.team && b.autoTeam===false) a.autoTeam = false;
+  return a;
+}
+function mergeState(o){
+  Object.keys(o.days||{}).forEach(k=>{ S.days[k] = mergeDay(S.days[k]||{}, o.days[k]||{}); });
+  if(o.doneLocal){ S.doneLocal = Object.assign({}, o.doneLocal, S.doneLocal||{}); }
+  (o.tests||[]).forEach(t=>{ S.tests = S.tests||[]; if(!S.tests.some(x=>x.date===t.date && x.label===t.label)) S.tests.push(t); });
+  if(o.seen && o.seen.maxLv > ((S.seen||{}).maxLv||1)){ S.seen = S.seen||{}; S.seen.maxLv = o.seen.maxLv; }
+}
+let pullBusy = false, pullAt = 0;
+async function syncPull(force){
+  if(!S.bkUrl || pullBusy || (!force && Date.now()-pullAt < 120000)) return;
+  pullBusy = true; pullAt = Date.now();
+  try{
+    const me = S.viewOnly ? null : (S.device||'こうきのiPhone');
+    const j = await (await fetch(S.bkUrl+'?a=list')).json(); if(!j.ok) throw new Error(j.error);
+    const latest = {}; j.list.forEach(x=>{ if(x.device && x.device!==me && +x.xp>0 && !latest[x.device]) latest[x.device] = x; });
+    S.mergedAt = S.mergedAt||{}; let changed = false;
+    for(const dev of Object.keys(latest)){
+      const x = latest[dev]; if(S.mergedAt[dev] === x.at) continue;
+      const g = await (await fetch(S.bkUrl+'?a=get&row='+x.row)).json(); if(!g.ok) continue;
+      const o = JSON.parse(g.data); if(!o || !o.days) continue;
+      mergeState(o); S.mergedAt[dev] = x.at; changed = true;
+    }
+    if(changed){ save(); bkSoon(); const ae = document.activeElement; if(view!=='proto' && !(ae && ae.tagName==='INPUT')){ const s2 = summary(); lastTotal = s2.total; lastLv = lvFrom(s2.total,50); render(); } }
+    S.syncInfo = {at: Date.now(), ok: true, devs: Object.keys(latest)};
+  }catch(e){ S.syncInfo = {at: Date.now(), ok: false, err: String(e && e.message || e)}; }
+  finally{ pullBusy = false; save(); }
 }
 function bkSoon(){ if(!S.bkUrl || S.viewOnly) return; bkPending = true; clearTimeout(bkTimer); bkTimer = setTimeout(cloudBackup, 15000); }
 S = load();
@@ -949,7 +989,10 @@ function vParent(){
     ${(()=>{ const b = S.bkInfo||{}; const f = t=>{ const d = new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); };
       return !S.bkUrl ? '<p class="small muted">まだ設定されていません。Apps Script の「ウェブアプリのURL」を貼り付けてください</p>'
         : `<p class="small muted">${b.at?'最後にバックアップした時刻：'+f(b.at):'まだバックアップしていません'}</p>${b.ok===false?`<p class="small" style="color:var(--warn)">うまく送れませんでした：${esc(b.err||'')}</p>`:''}`; })()}
-    <div class="row"><span class="small grow" style="min-width:0">${S.viewOnly?'この端末は<b>見るだけ</b>（クラウドに送りません）':'この端末の記録をクラウドに送ります（こうきの端末用）'}</span><button class="${S.viewOnly?'mins':'cancel'}" style="flex:none;min-width:104px;min-height:40px;font-size:12.5px" data-act="viewOnly">${S.viewOnly?'送る端末にする':'見るだけにする'}</button></div>
+    <span class="label">この端末の使い方</span>
+    <div class="seg">${[['こうきのiPhone','こうきの<br>iPhone'],['こうきのiPad','こうきの<br>iPad'],['view','見るだけ<br>（おうちの人）']].map(([v,l])=>`<button data-act="devRole" data-v="${v}" aria-pressed="${S.viewOnly ? v==='view' : (!S.viewOnly && (S.device||'こうきのiPhone')===v)}" style="min-height:52px;font-size:12.5px;line-height:1.3">${l}</button>`).join('')}</div>
+    <span class="small muted">${S.viewOnly?'この端末からは送りません。こうきの端末の記録を読み込んで見るだけです':'こうきの端末どうし（iPhone・iPad）の記録は、開いたときに自動で足し合わされます'}</span>
+    ${S.syncInfo?`<span class="small muted">ほかの端末との同期：${S.syncInfo.ok?(S.syncInfo.devs.length?esc(S.syncInfo.devs.join('・'))+' の記録を確認ずみ':'ほかの端末の記録はまだありません'):'<span style="color:var(--warn)">'+esc(S.syncInfo.err||'')+'</span>'}</span>`:''}
     ${S.viewOnly&&S.bkUrl?'<button class="btn ghost" data-act="bkLatest">こうきの最新の記録を読み込む</button>':''}
     <label class="small" for="bkurl">ウェブアプリのURL${S.bkUrl?'（設定ずみ。変えるときだけ入力）':''}</label>
     <input id="bkurl" type="url" placeholder="https://script.google.com/macros/s/…/exec">
@@ -1099,15 +1142,16 @@ document.addEventListener('click', e=>{
     case 'tdel': S.tests = S.tests.filter(t=>!(t.date===b.dataset.date && t.label===b.dataset.label)); break;
     case 'offset': S.offset = (S.offset||0) + (+b.dataset.d); break;
     case 'offset0': S.offset = 0; break;
-    case 'bkSave': { const v = document.getElementById('bkurl').value.trim(); if(!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/.test(v)){ document.getElementById('bkmsg').textContent = 'URLの形が違います（…/exec で終わるURL）'; return; } S.bkUrl = v; S.bkInfo = null; save(); toast('保存しました。バックアップ中…'); cloudBackup().then(render); render(); return; }
+    case 'bkSave': { const v = document.getElementById('bkurl').value.trim(); if(!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/.test(v)){ document.getElementById('bkmsg').textContent = 'URLの形が違います（…/exec で終わるURL）'; return; } S.bkUrl = v; S.bkInfo = null; save(); toast('保存しました。同期中…'); syncPull(true).then(()=>cloudBackup()).then(render); render(); return; }
     case 'viewOnly': S.viewOnly = !S.viewOnly; save(); render(); return;
+    case 'devRole': { const v = b.dataset.v; if(v==='view'){ S.viewOnly = true; } else { S.viewOnly = false; S.device = v; } S.mergedAt = {}; S.bkHash = null; save(); render(); syncPull(true); return; }
     case 'bkLatest': { const msg = document.getElementById('bkmsg'); msg.textContent = '読み込み中…';
       fetch(S.bkUrl+'?a=list').then(r=>r.json()).then(j=>{ if(!j.ok || !j.list.length) throw new Error(j.error||'バックアップがありません'); const pick = j.list.find(x=>+x.xp>0) || j.list[0]; return fetch(S.bkUrl+'?a=get&row='+pick.row).then(r=>r.json()).then(g=>({g, at:pick.at})); })
         .then(({g,at})=>{ if(!g.ok) throw new Error(g.error); const o = JSON.parse(g.data); if(!o || !o.days) throw new Error('中身が正しくありません');
           const keep = {sheetUrl:S.sheetUrl, bkUrl:S.bkUrl, bkInfo:S.bkInfo, sheet:S.sheet, calDays:S.calDays, calInfo:S.calInfo, games:S.games, gameInfo:S.gameInfo, viewOnly:true};
           S = Object.assign(o, keep); save(); afterChange(); go('parent'); toast(at+' の記録を読み込みました'); })
         .catch(e=>{ const m = document.getElementById('bkmsg'); if(m) m.textContent = '読み込めませんでした：'+(e.message||e); }); return; }
-    case 'bkNow': toast('バックアップ中…'); cloudBackup().then(()=>{ render(); toast(S.bkInfo&&S.bkInfo.ok?'バックアップしました':'送れませんでした'); }); return;
+    case 'bkNow': toast('同期・バックアップ中…'); syncPull(true).then(()=>cloudBackup()).then(()=>{ render(); toast(S.bkInfo&&S.bkInfo.ok?'バックアップしました':'送れませんでした'); }); return;
     case 'bkList': { const msg = document.getElementById('bkmsg'); msg.textContent = '読み込み中…';
       fetch(S.bkUrl+'?a=list').then(r=>r.json()).then(j=>{ if(!j.ok) throw new Error(j.error); bkList = j.list; bkPick = null; render(); }).catch(e=>{ const m = document.getElementById('bkmsg'); if(m) m.textContent = '読み込めませんでした：'+(e.message||e); }); return; }
     case 'bkPick': bkPick = +b.dataset.row; render(); return;
@@ -1132,8 +1176,9 @@ autoCredit(); save();
 const s0 = summary(); lastTotal = s0.total; lastLv = lvFrom(s0.total,50);
 render();
 loadSheet(false);
-document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible'){ render(); loadSheet(false); if(S.bkUrl && (!S.bkInfo || !S.bkInfo.at || Date.now()-S.bkInfo.at > 12*3600*1000)) cloudBackup(); } else if(bkPending){ clearTimeout(bkTimer); cloudBackup(); } });
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible'){ render(); loadSheet(false); syncPull(false); if(S.bkUrl && (!S.bkInfo || !S.bkInfo.at || Date.now()-S.bkInfo.at > 12*3600*1000)) cloudBackup(); } else if(bkPending){ clearTimeout(bkTimer); cloudBackup(); } });
 if(S.bkUrl && (!S.bkInfo || !S.bkInfo.at || Date.now()-S.bkInfo.at > 12*3600*1000)) setTimeout(cloudBackup, 3000);
+if(S.bkUrl) setTimeout(()=>syncPull(true), 1500);
 window.__koki = {dayXP, summary, lvInfo, sleepStars, parseCSV, rowsToItems, allItems};
 })();
 </script>
