@@ -143,7 +143,7 @@ textarea{min-height:120px;font-family:ui-monospace,monospace;font-size:12px}
 const KEY = 'koki-training-v01';
 const THEMES = [
   {name:'① メンタル', short:'メンタル', color:'var(--t1)', how:'「今日がんばったこと」の記録、継続ボーナス（7日・30日・100日）'},
-  {name:'② 体力・持久力', short:'体力', color:'var(--t2)', how:'モビリティ、ケア（ストレッチポール・静的ストレッチ・マッサージ）、下半身・上半身・体幹トレ、スイミング'},
+  {name:'② 体力・持久力', short:'体力', color:'var(--t2)', how:'モビリティ、ケア（ストレッチポール・静的ストレッチ・マッサージ・マイクロカレント）、下半身・上半身・体幹トレ、スイミング'},
   {name:'③ 走力・俊敏性', short:'走力', color:'var(--t3)', how:'キャスク、ラダートレーニング、ムーブメントスキル、プライオ、モーターコントロール、プレパレーション、切り返しトレ、ステップ台'},
   {name:'④ バッティング', short:'打撃', color:'var(--t4)', how:'素振り、置きティー、龍之介コーチ、川上コーチ（バッティング）'},
   {name:'⑤ 守備・送球', short:'守備', color:'var(--t5)', how:'守備練習、シャドウピッチング、メディシンボール、うつ伏せスイミング、川上コーチ（守備）'},
@@ -169,6 +169,7 @@ const MENUS = [
   {id:'stretchpole', g:'care', label:'ストレッチポール（コロコロ）', sub:'', th:1, mins:[10,15]},
   {id:'staticstr', g:'care', label:'静的ストレッチ（全身）', sub:'お風呂のあとがおすすめ', th:1, mins:[10,15]},
   {id:'massage', g:'care', label:'マッサージ・ケア', sub:'', th:1, mins:[10,15]},
+  {id:'microcurrent', g:'care', label:'マイクロカレント治療', sub:'', th:1},
   {id:'protein', g:'care', label:'プロテイン・リカバリードリンク', sub:'毎日とりたい。わすれずに！', th:7},
   {id:'lower', g:'kin', label:'下半身トレーニング', sub:'月・水がおすすめ', th:1},
   {id:'upper', g:'kin', label:'上半身トレーニング', sub:'火・木がおすすめ', th:1},
@@ -605,7 +606,7 @@ function titles(s){
   const L = lvFrom(s.total,50);
   const days = Object.entries(S.days);
   const cnt = f=>days.reduce((a,[k,D])=>a+f(D,k),0);
-  const care = cnt(D=>['stretchpole','staticstr','massage'].filter(id=>(D.menus||{})[id]).length);
+  const care = cnt(D=>['stretchpole','staticstr','massage','microcurrent'].filter(id=>(D.menus||{})[id]).length);
   const protein = cnt(D=>(D.menus||{}).protein?1:0);
   const zen = cnt(D=>(D.ganbatta||{}).zenryoku?1:0);
   const gamesPlayed = (S.games||[]).filter(g=>g.play && g.play!=='-' && !/出場なし/.test(g.play)).length;
@@ -616,7 +617,7 @@ function titles(s){
   step('LVNに到達', [3,5,10,15], L, 'レベル', 'レベルを上げる');
   [[7,'1週間つづけた'],[30,'1か月つづけた'],[100,'100日つづけた']].forEach(([n,nm])=>T.push({name:nm, got:!!s.reached[n], how:n+'日つづけて記録する', g:'streak'}));
   step('がんばった週 N回', [1,5,10], great, '回', '1週間で'+WEEK_GREAT+'XPをこえる');
-  step('ケアの達人 N回', [10,50,100], care, '回', 'ストレッチポール・静的ストレッチ・マッサージを記録');
+  step('ケアの達人 N回', [10,50,100], care, '回', 'ストレッチポール・静的ストレッチ・マッサージ・マイクロカレントを記録');
   step('プロテイン N日', [10,30,100], protein, '日', 'プロテイン・リカバリードリンクを記録');
   step('全力プレー N回', [5,20,50], zen, '回', '夜のふり返りで「最後まで全力でやりきった」');
   step('試合出場 N試合', [5,10,20], gamesPlayed, '試合', '試合に出場する（試合記録から自動）');
