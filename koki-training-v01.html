@@ -148,7 +148,7 @@ const THEMES = [
   {name:'④ バッティング', short:'打撃', color:'var(--t4)', how:'素振り、置きティー、龍之介コーチ、川上コーチ（バッティング）、今週の目標ボーナス（+15）'},
   {name:'⑤ 守備・送球', short:'守備', color:'var(--t5)', how:'守備練習、シャドウピッチング、メディシンボール、うつ伏せスイミング、川上コーチ（守備）'},
   {name:'⑥ 大会・実戦経験', short:'実戦', color:'var(--t6)', how:'チーム練習（30）・試合（40）'},
-  {name:'⑦ 人として成長', short:'人間力', color:'var(--t7)', how:'自主トレ画面の「人として成長」：あいさつ、チームのために動いた、コーチに教わったことを試した（各10XP）。パパからの「成長の記録」（小さなこと10XP〜大きな成長50XP）'},
+  {name:'⑦ 人として成長', short:'人間力', color:'var(--t7)', how:'自主トレ画面の「人として成長」：あいさつ、チームのために動いた、コーチに教わったことを試した（各10XP）。パパ・ママからの「成長の記録」（小さなこと10XP〜大きな成長50XP）'},
   {name:'⑧ 生活習慣', short:'生活', color:'var(--t8)', how:'朝のチェック、帰宅チェック、体重をはかる、プロテイン・リカバリードリンク、早寝（21時で満点）、夜のふり返り、身長をはかる（週1回）'},
 ];
 const MENUS = [
@@ -778,7 +778,7 @@ function vHome(){
       <span class="small" style="color:var(--chalk);opacity:.85">${esc(g.note||'')}</span>
       <span class="small" style="font-weight:900;color:${hit?'var(--ok)':'var(--t4)'}">${hit?'きょうは達成！ +15XPボーナス':'きょうまだ：'+esc(g.how)+'で +15XP'}</span></button>`; })()}
   ${(()=>{ const G = (S.growth||[]).filter(x=>x.date<=todayKey()).sort((a,b)=>a.date<b.date?1:-1); const x = G[0]; if(!x) return ''; const days = Math.round((parseDk(todayKey())-parseDk(x.date))/86400000); if(days>10) return '';
-    return `<button class="panel stack" data-go="status" style="gap:4px;text-align:left;width:100%;border-color:rgba(143,187,230,.5)"><div class="row" style="gap:6px"><span class="tag" style="background:var(--t7);color:#0c1626">パパから</span><span class="small muted">${esc(x.kind)}・${md(parseDk(x.date))}</span><span class="grow"></span><span class="small" style="color:var(--t7);font-weight:900">⑦ +${x.xp}XP</span></div><span class="small" style="color:var(--chalk)">${esc(x.text)}</span></button>`; })()}
+    return `<button class="panel stack" data-go="status" style="gap:4px;text-align:left;width:100%;border-color:rgba(143,187,230,.5)"><div class="row" style="gap:6px"><span class="tag" style="background:var(--t7);color:#0c1626">パパ・ママから</span><span class="small muted">${esc(x.kind)}・${md(parseDk(x.date))}</span><span class="grow"></span><span class="small" style="color:var(--t7);font-weight:900">⑦ +${x.xp}XP</span></div><span class="small" style="color:var(--chalk)">${esc(x.text)}</span></button>`; })()}
   <div class="stats3">
     <div class="stat"><b>${s.streak}</b><span>日つづけている</span></div>
     <div class="stat"><b>${s.month}</b><span>日 今月記録</span></div>
@@ -999,7 +999,7 @@ function vStatus(){
     <button class="panel" data-go="casq" style="text-align:left"><h2>キャスク測定会</h2><span class="small muted">自己ベストと記録の推移</span></button>
     <button class="panel" data-go="body" style="text-align:left"><h2>からだの記録</h2><span class="small muted">身長（週1回）</span></button>
   </div>
-  ${(S.growth||[]).length?`<section class="panel stack" style="gap:8px;border-color:rgba(143,187,230,.45)"><span class="label" style="color:var(--t7)">⑦ 人として成長：パパからの記録</span>
+  ${(S.growth||[]).length?`<section class="panel stack" style="gap:8px;border-color:rgba(143,187,230,.45)"><span class="label" style="color:var(--t7)">⑦ 人として成長：パパ・ママからの記録</span>
     ${(S.growth||[]).slice().sort((a,b)=>a.date<b.date?1:-1).map(x=>`<div class="stack" style="gap:2px;border-top:1px solid var(--line);padding-top:6px"><div class="row"><span class="small muted grow">${md(parseDk(x.date))}・${esc(x.kind)}</span><span class="small" style="color:var(--t7);font-weight:900">+${x.xp}XP</span></div><span class="small">${esc(x.text)}</span></div>`).join('')}</section>`:''}
   <section class="stack" style="gap:8px"><span class="label">8つのテーマ（タップでXPのもらい方）</span>
   ${THEMES.map((T,i)=>{ const I = lvInfo(s.themes[i],25); const open = statusOpen===i; return `<button class="theme-row" data-act="topen" data-i="${i}" aria-expanded="${open}">
