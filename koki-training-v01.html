@@ -178,60 +178,63 @@ const MENUS = [
 const MENU = Object.fromEntries(MENUS.map(m=>[m.id,m]));
 /* 体づくりプロトコルのYouTube再生リスト（月ごとに更新）。items はメニュー名（空なら動画タイトルを自動で覚える） */
 const PROTO = {
-  mobility: {month:'202609', list:'PLf-Axq5nb0tk', place:'室内', gear:'特になし（ストレッチバー・ストレッチポールがあれば尚可）',
+  // 2ヶ月目（2026/11〜）。ex: [種目, 回数・セット, ねらう場所, コツ, 動画なし(1), YouTube動画ID]
+  mobility: {term:'2ヶ月目', freq:'毎日OK', place:'室内', gear:'特になし（ストレッチバー・ストレッチポールがあれば尚可）',
     why:{sub:'体をやわらかく動かす', purpose:'体を大きく、なめらかに動かせるようにする', goal:'バッティングのフォーム、守備の可動域が広がる'},
-    ex:[['Cat Camel','10回ずつ','背中、お腹','そらせるときに息を吐いて、丸めるときに息を吸う。ついてる手はしっかり地面を押す'],
-        ['Hip 90-90 Stretch','5往復','股関節・おしり','前足をしっかりL字に。向きを変えるときは足の位置を変えずに向きを変える'],
-        ['Leg Swing Stretch','すべて10秒×1','太ももの裏','棒や段差がなければ、なしでもストレッチできる'],
-        ['Hip joint stretch','15秒×2','股関節','脚はしっかりL字、手は少し前につき、背中をまっすぐにして体重を後ろにかける'],
-        ['T-Spine Twist Elbow-Bent Side-Lying','10回','胸郭・脇腹','ストレッチポールがなければ地面に膝をつけて行う'],
-        ['Calf Stretch','10秒ホールド＋足踏み20回','ふくらはぎ','なるべく地面にかかとを押し付ける'],
-        ['3D Core Mobility Stretch','各10回','体幹部全面','手はしっかりTの字の姿勢をキープ'],
-        ['Anterior Sling Half Kneeling','15秒×2','太もも前面・お腹','しっかり胸を張り体をひねる。後ろ足は前方向に傾けてしっかりストレッチ']]},
-  motor: {month:'202609', list:'PLahRX2AyFjDw', place:'室内', gear:'棒／チューブ・バランスパッド（あれば尚可）',
+    ex:[['Spinal Wave','右回り・左回り8回ずつ','背中','肘があまり曲がらないように地面をしっかり押す。できる限り大きく円を描く',0,'R0TOlDUlQ0Y'],
+        ['Hip 90-90 Stretch','5往復','股関節・おしり','前足をしっかりL字に。向きを変えるときは足の位置を変えずに向きを変える',0,'ToLpAXTbrh8'],
+        ["World's Greatest Stretch w/ Leg Cradle",'6回','太ももの裏、胸郭','ランジの姿勢で、肘を地面に近づけるときは前の膝が前に出ないように。太ももの裏を伸ばすときはつま先を上に向ける',0,'ALAh_KLLBlY'],
+        ['Senkotsu-Wari Stretch','3秒×5往復','股関節','脚はL字、手は少し前、背中をまっすぐにして体重を後ろに。そこから右へ行けるだけ行き3秒キープ、左へ行き3秒キープ',0,'IXkQ1_lUV2k'],
+        ['Quadruped T-Spine Rotation','10回','胸郭・脇腹','開き切るところでしっかり地面を押す',0,'w_7s9eIYH40'],
+        ['Calf Stretch','10秒ホールド＋足踏み20回','ふくらはぎ','なるべく地面にかかとを押し付ける',0,'6Jnhhr8Ix4E'],
+        ['3D Core Mobility Stretch','各10回','体幹部全面','手はしっかりTの字の姿勢をキープ',0,'R5YTGmMyjmk'],
+        ['Anterior Sling Half Kneeling','15秒×2','太もも前面・お腹','しっかり胸を張り体をひねる。後ろ足は前方向に傾けてしっかりストレッチ',0,'czurmEDq0JA']]},
+  motor: {term:'2ヶ月目', freq:'週1〜4回', place:'室内', gear:'棒／チューブ・バランスパッド（あれば尚可）',
     why:{sub:'バランス・体の使い方', purpose:'自分の体を思った通りにコントロールする力', goal:'ケガをしにくい体、送球や捕球の安定感'},
-    ex:[['1-Leg Lowering 3-Month','10回×2','お腹','腰が浮かないように。体と地面で薄い紙をはさみ、引っ張られても抜けないイメージ'],
-        ['Glutes Bridge Bent-Knee Wave Re-Loading / RNT-Knee','5回×2','おしりなど','上がるときはおしりから、下がるときは背中から。体のパーツを一つずつ順番に動かす。チューブなしでもOK'],
-        ['Tall Kneeling Hip Hinge / Dowel','10回×2','','背中・腰・首から棒が離れないように股関節を動かす'],
-        ['Hip Hinge RNT / Dowel','10回×2','','背中・腰・首から棒が離れないように股関節を動かす'],
-        ['A Scap Prone','3秒キープ×6','背中・肩甲骨','手が地面から離れないように。一番高いところで3秒キープ'],
-        ['Single-leg stance with eyes opened','15秒×2','バランス','眼を開けて'],
-        ['Single-leg stance with eyes open on a Balance Pad','15秒×2','バランス','眼を開けて。パッドなしでも大丈夫'],
-        ['Single-leg stance with eyes closed on a Balance Pad','15秒×2','バランス','眼を閉じて。パッドなしでも大丈夫'],
-        ['Single-leg stance with eyes closed','15秒×2','バランス','眼を閉じて']]},
-  prep: {month:'202609', list:'PLeIZLteNUUIo', place:'室内／屋外', gear:'特になし',
+    ex:[['1-Leg 1-Arm Lowering 6-Month Contralateral','10回×2','お腹','腰が浮かないように（体と地面で薄い紙をはさみ、引っ張られても抜けないイメージ）。箱はなくてもOK。足を下げたとき、かかとは地面につけない',0,'s9uD9ee-8T4'],
+        ['Glutes Bridge Leg-Lock Bent-Knee Re-Loading','6秒×3','おしりなど','地面についている足はつま先を上げる。もう一方の足は手で抱えて胸に押さえつけ、おしりをできるだけ高く上げて6秒キープ',0,'W8a7Nffy8U0'],
+        ['Hip Hinge RNT / Dowel','10回×2','','背中・腰・首から棒が離れないように股関節を動かす。バンドはなくてもOK',0,'4DJ36E61PEo'],
+        ['Staggered Hip Hinge RNT / Dowel','10回×2','','背中・腰・首から棒が離れないように股関節を動かす。バンドはなくてもOK',0,'QqEHMUu3fHg'],
+        ['A Scap Prone','3秒キープ×6','背中・肩甲骨','手が地面から離れないように。一番高いところで3秒キープ',0,'2JUoYUTX0Uo'],
+        ['Single-leg stance with eyes open on a Balance Pad','15秒×2','バランス','眼を開けて。パッドなしでも大丈夫',0,'15cY_FwH94I'],
+        ['Single-leg stance with eyes closed on a Balance Pad','15秒×2','バランス','眼を閉じて。パッドなしでも大丈夫',0,'qcMgURFQdQo'],
+        ['Single-leg stance with eyes opened on a Balance Pad while holding a Water Bag and punching','各3回×2','バランス','パッドなしでも大丈夫。重りはウォーターバッグでなくてもOK。3方向にできるだけ強くプッシュ',0,'6t5PldomH4U'],
+        ['Single-leg stance with eyes closed','15秒×2','バランス','眼を閉じて',0,'L8cG-td9_ms']]},
+  prep: {term:'2ヶ月目', freq:'週1〜4回', place:'室内／屋外', gear:'特になし',
     why:{sub:'動きの準備運動', purpose:'体を「動ける状態」に目覚めさせる', goal:'練習前に本気モードに切り替える'},
-    ex:[['Jog to Backpedal','2往復','','ストップ動作は一瞬で'],
-        ['Skip FWD-BWD','2往復','','リズミカルに'],
-        ['Flexed Rocking to Hurdle Seat Right-Left-Center','5回','太ももなど','しっかり転がる勢いを使ってストレッチ'],
-        ['Four-direction squat','5周×2','下半身','おしりに効くように股関節を上手に使う'],
-        ['Rapid Response Base Pogo','5秒×2','','とにかく全力で。少し動きをミスしてもOK'],
-        ['Rapid Response Base 2inch Run','5秒×2','','とにかく全力で。少し動きをミスしてもOK']]},
-  plyo: {month:'202609', list:'PLM1HN0Nurt-I', place:'室内', gear:'特になし／跳べるスペース（ジャンプボックスがあれば尚可）',
+    ex:[['Carioca','2往復','','リズミカルに',0,'SKFgOTZqybI'],
+        ['Arm Swing Skip','2本','','リズミカルに。腕も大きく回す',0,'6oNEDeTqH8s'],
+        ['Flexed Rocking to Hurdle Seat Right-Left-Center','5回','太ももなど','しっかり転がる勢いを使ってストレッチ',0,'jTH3dl2NIAE'],
+        ['Four-direction squat','5周×2','下半身','おしりに効くように股関節を上手に使う',0,'-LMG92PaZLA'],
+        ['Rapid Response Base Pogo','5秒×2','','とにかく全力で。少し動きをミスしてもOK',0,'paZCS9dR65U'],
+        ['Rapid Response Base 1Foot Linear','各5秒×2','','とにかく全力で。少し動きをミスしてもOK',0,'LeI9bZpPkeM']]},
+  plyo: {term:'2ヶ月目', freq:'週1〜3回', place:'室内', gear:'特になし／跳べるスペース',
     why:{sub:'地面を強く蹴るジャンプ系', purpose:'一番の強みの走力・俊敏性を直接鍛える', goal:'盗塁、一歩目のスタート、守備の反応速度'},
-    ex:[['Ankle Hop','10×2','','地面との接地時間を短く、高く飛ぶ'],
-        ['Lin-Vert Drop to Base','6×2','','一瞬で着地姿勢に（Hip Hinge RNT / Dowelと同じ姿勢）。チューブはなくてもOK'],
-        ['Lin-Vert Box Jump NCM','6×2','','思いっきり飛んで、一瞬で着地姿勢に'],
-        ['Lin-Vert Box Drop to Base','6×2','','一瞬で着地姿勢に'],
-        ['Countermovement Jump','4×2','','思いっきり反動をつけて高く飛ぶ'],
-        ['Broad Jump','4×2','','全力で前に飛ぶ']]},
-  movement: {month:'202609', list:'PLUreSi94abKs', place:'屋外', gear:'壁',
+    ex:[['Ankle Hop','10×2','','地面との接地時間を短く、高く飛ぶ',0,'gjhvxWazfnc'],
+        ['Lin-Vert Drop to 1-Leg Base','6×2','','一瞬で着地姿勢に。チューブはなくてもOK',0,'Qvtzp_zazr8'],
+        ['Skater Hop','4往復×2','','右・左にできるだけ大きく飛ぶ。着地して1秒しっかり静止してから次のジャンプ',0,'96jpKH_ar5U'],
+        ['Kneeling Jump','4×2','','最初はつま先を立てて座った状態から。できるようになったら、つま先を立てずに座って行う',0,'hh-5J2Mqof0'],
+        ['Countermovement Jump','4×2','','思いっきり反動をつけて高く飛ぶ',0,'cBfcjOfIZOA'],
+        ['Broad Jump','4×2','','全力で前に飛ぶ',0,'1KVtKpRItxM']]},
+  movement: {term:'2ヶ月目', freq:'週1〜3回', place:'屋外', gear:'壁',
     why:{sub:'直線加速', purpose:'まっすぐ速く走る技術そのもの', goal:'ベースランニング、送球への反応'},
     ex:[['10メートルダッシュ','2本','','（動画なし）',1],
-        ['Acceleration Wall Drill - Posture Holds','6秒×3×2','','手はまっすぐ。地面の足はつま先立ち、上げた足は膝を壁に突き刺すように。全力で壁を押す'],
-        ['Acceleration Wall Drill - Load and Lift','6×2','','足を後ろに伸ばした状態から一瞬で加速姿勢に'],
-        ['Acceleration Wall Drill - Leg Drive','10回','','地面との接地時間を最大限短く'],
-        ['Acceleration Wall Drill - March','10×2','','壁を押しながら足を大きく入れ替えて歩く'],
-        ['Acceleration Wall Drill - Single Exchange','10×2','','足を一回素早く入れ替える'],
+        ['Acceleration Wall Drill - Posture Holds','6秒×3×2','','手はまっすぐ。地面の足はつま先立ち、上げた足は膝を壁に突き刺すように。全力で壁を押す',0,'Ffgrr4OOCs0'],
+        ['Acceleration Wall Drill - Load and Lift','6×2','','足を後ろに伸ばした状態から一瞬で加速姿勢に',0,'DrB9RuqZJpk'],
+        ['Acceleration Wall Drill - Single Exchange','10回','','足を一回素早く入れ替える',0,'couPOTjA_m4'],
+        ['Acceleration Wall Drill - Double Exchange','各6×2','','足を二回素早く入れ替える',0,'fj-G3YRqLrA'],
+        ['Acceleration Wall Drill - Triple Exchange','8×2','','足を三回素早く入れ替える',0,'ITPfcGNOQCY'],
         ['10メートルダッシュ','2本','','（動画なし）',1]]},
-  medball: {month:'202609', list:'PLcnjz0elSzZs', place:'屋外', gear:'メディシンボール（必須）',
+  medball: {term:'2ヶ月目', freq:'週1〜3回', place:'屋外', gear:'メディシンボール（必須）',
     why:{sub:'体幹・回旋力', purpose:'打つ力・投げる力の元になる体の使い方', goal:'バッティングの爆発力、送球の強さ'},
-    ex:[['Lin-Horiz MB Overhead Throw Tall-Kneeling CM','4×2','','全力で'],
-        ['Rot-Para-Horiz MB Throw Tall-Kneeling NCM','6×2','','股関節の力もうまく使って投げる'],
-        ['Tall-Kneeling Medicine Ball Side Throw','6×2','','全力で'],
-        ['Medicine Ball Shovel Toss','6×2','','投げた後、おなかに効いた感じが出るとよい'],
-        ['Kneeling Back Throw','6×2','','全力で']]},
+    ex:[['Lin-Horiz MB Overhead Throw Tall-Kneeling CM','4×2','','全力で',0,'aTWw__N-JQo'],
+        ['Rot-Para-Horiz MB Throw Base CM','4×2','','股関節の力もうまく使って投げる',0,'ZB-qEwIIM6U'],
+        ['Rot-Perp-Horiz MB Throw Base CM','4×2','','全力で',0,'rWfQoAxcLeA'],
+        ['Medicine Ball Overhead Backward Throw','4×2','','全力で',0,'zo6wMEMkxQ4'],
+        ['Lin-Horiz MB Underhand Toss Base CM','4×2','','全力で',0,'mrK-nDTP93E']]},
 };
+function protoVids(P){ return (P.ex||[]).filter(x=>!x[4] && x[5]).map(x=>x[5]); }
+
 const GROUPS = [
   {g:'care', name:'ケア・回復（毎日）'},
   {g:'proto', name:'体づくりプロトコル'},
@@ -1020,16 +1023,16 @@ function vProto(){
   return hdr(esc(M.label),'jishu','体づくりプロトコル')+`
   <div style="position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--ground);padding-block:6px;margin-block:-6px"><div style="position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden"><div id="yt" style="position:absolute;inset:0;width:100%;height:100%"></div></div></div>
   <section class="panel stack" style="gap:6px;border-color:rgba(224,184,74,.4)">
-    <div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag gold">${esc(W.sub)}</span><span class="tag">${esc(P.place)}</span></div>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag gold">${esc(W.sub)}</span><span class="tag">${esc(P.place)}</span><span class="tag">${esc(P.freq||'')}</span></div>
     <div class="small"><span class="muted">何のため：</span><b>${esc(W.purpose)}</b></div>
     <div class="small"><span class="muted">光揮の目標とのつながり：</span><b style="color:var(--gold)">${esc(W.goal)}</b></div>
     <div class="small muted">器具：${esc(P.gear)}</div>
   </section>
 
-  <section class="stack" style="gap:6px"><div class="row"><span class="label grow">メニュー（${esc(P.month.slice(0,4)+'年'+(+P.month.slice(4))+'月')}）</span><span class="small muted">回数を見ながら。タップでその動画へ</span></div>
+  <section class="stack" style="gap:6px"><div class="row"><span class="label grow">メニュー（${esc(P.term)}）</span><span class="small muted">回数を見ながら。タップでその動画へ</span></div>
     <ol id="plist" class="stack" style="gap:6px;margin:0;padding:0;list-style:none"></ol></section>
   <button class="btn" data-act="protoDone">${on?'記録ずみ！（もう一度押すと取り消し）':'やった！（記録する）'}</button>
-  <a class="small muted" style="text-align:center" href="https://www.youtube.com/playlist?list=${P.list}" target="_blank" rel="noopener">YouTubeアプリで開く ↗</a>`;
+  <a class="small muted" style="text-align:center" href="https://www.youtube.com/watch_videos?video_ids=${protoVids(P).join(',')}" target="_blank" rel="noopener">YouTubeアプリで開く ↗</a>`;
 }
 function ytTitle(id, i){ const P = PROTO[protoId]; return (S.ytTitles||{})[id] || P.items[i] || ('メニュー'+(i+1)); }
 function drawPlist(){
@@ -1052,9 +1055,10 @@ function mountYT(){
     return;
   }
   const P = PROTO[protoId];
-  ytPlayer = new YT.Player('yt', {width:'100%', height:'100%', playerVars:{listType:'playlist', list:P.list, playsinline:1, rel:0, modestbranding:1},
+  const vids = protoVids(P);
+  ytPlayer = new YT.Player('yt', {width:'100%', height:'100%', videoId: vids[0], playerVars:{playsinline:1, rel:0, modestbranding:1},
     events:{
-      onReady: ()=>{ let n = 0; const t = setInterval(()=>{ drawPlist(); if((ytPlayer.getPlaylist()||[]).length || ++n>20) clearInterval(t); }, 500); },
+      onReady: ()=>{ try{ ytPlayer.cuePlaylist(vids); }catch(e){} let n = 0; const t = setInterval(()=>{ drawPlist(); if((ytPlayer.getPlaylist()||[]).length || ++n>20) clearInterval(t); }, 500); },
       onStateChange: ()=>{ try{ const vd = ytPlayer.getVideoData(); if(vd && vd.video_id && vd.title){ S.ytTitles = S.ytTitles||{}; if(S.ytTitles[vd.video_id]!==vd.title){ S.ytTitles[vd.video_id] = vd.title; save(); } } }catch(e){} drawPlist(); },
       onError: ()=>{ const ol = document.getElementById('plist'); if(ol) ol.innerHTML = '<li class="small" style="color:var(--warn)">動画を読み込めませんでした。再生リストが「限定公開」か、リンクが正しいかを確認してください</li>'; }
     }});
