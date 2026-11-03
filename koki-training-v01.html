@@ -148,7 +148,7 @@ const THEMES = [
   {name:'④ バッティング', short:'打撃', color:'var(--t4)', how:'素振り、置きティー、龍之介コーチ、川上コーチ（バッティング）、今週の目標ボーナス（+15）'},
   {name:'⑤ 守備・送球', short:'守備', color:'var(--t5)', how:'守備練習、シャドウピッチング、メディシンボール、うつ伏せスイミング、川上コーチ（守備）'},
   {name:'⑥ 大会・実戦経験', short:'実戦', color:'var(--t6)', how:'チーム練習（30）・試合（40）'},
-  {name:'⑦ 人として成長', short:'人間力', color:'var(--t7)', how:'自主トレ画面の「人として成長」：あいさつ、チームのために動いた、コーチに教わったことを試した（各10XP）'},
+  {name:'⑦ 人として成長', short:'人間力', color:'var(--t7)', how:'自主トレ画面の「人として成長」：あいさつ、チームのために動いた、コーチに教わったことを試した（各10XP）。パパからの「成長の記録」（小さなこと10XP〜大きな成長50XP）'},
   {name:'⑧ 生活習慣', short:'生活', color:'var(--t8)', how:'朝のチェック、帰宅チェック、体重をはかる、プロテイン・リカバリードリンク、早寝（21時で満点）、夜のふり返り、身長をはかる（週1回）'},
 ];
 const MENUS = [
@@ -235,7 +235,7 @@ const PROTO = {
 };
 /* 今週の目標（コーチの言葉・こうき自身の目標）。期間中、関連する練習をした日に +15XP */
 const GOALS = [
-  {from:'2026-11-03', to:'2026-11-30', who:'こうき', text:'もっとバッティングをがんばる', why:'全国大会で高いレベルのピッチャーを見て、自分で決めた目標', th:3, menus:['suburi','okiTee'], lessons:['ryu','kawakami'], how:'素振り・置きティー・龍之介コーチ・川上コーチ'},
+  {from:'2026-11-03', to:'2026-11-30', who:'こうき', text:'もっとバッティングをがんばる', why:'全国大会で高いレベルのピッチャーを見て、自分で決めた目標', th:3, menus:['suburi','okiTee','mobility','motor','prep','plyo','movement','medball'], lessons:['ryu','kawakami'], how:'素振り・置きティー・フィジカルモンスター（体づくりプロトコル）・龍之介コーチ・川上コーチ', note:'強いバッティングの土台はフィジカル。フィジカルモンスターのメニューもバッティングの練習だよ'},
 ];
 function activeGoal(k){ return GOALS.find(g=>g.from<=k && k<=g.to) || null; }
 function goalHit(k, D){ const g = activeGoal(k); if(!g) return false; const M = D.menus||{}, L = D.lessons||{}; return g.menus.some(id=>M[id]) || g.lessons.some(id=>L[id]==='yes'); }
@@ -315,7 +315,7 @@ const DEFAULT_TESTS = [
   {date:'2026-11-16', subj:'国語', label:'漢字テスト ドリル48 ①〜⑩'},
   {date:'2026-11-26', subj:'国語', label:'漢字テスト ドリル48 ⑪〜⑳'},
 ];
-const WEEK_GOAL = 500, WEEK_GREAT = 700;
+const WEEK_GOAL = 350, WEEK_GREAT = 500;
 
 /* ---------- 保存 ---------- */
 let S;
@@ -328,7 +328,7 @@ function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} 
 /* ---------- クラウドバックアップ（送るだけ。自動で読み戻さない） ---------- */
 let bkTimer = null, bkBusy = false, bkPending = false, bkList = null, bkPick = null;
 function bkPayload(){
-  const o = {}; Object.keys(S).forEach(k=>{ if(!['sheet','calDays','games','calInfo','gameInfo','bkInfo','bkUrl','mergedAt','bkHash','device','viewOnly'].includes(k)) o[k] = S[k]; });
+  const o = {}; Object.keys(S).forEach(k=>{ if(!['sheet','calDays','games','calInfo','gameInfo','bkInfo','bkUrl','mergedAt','bkHash','device','viewOnly','growth','growthInfo'].includes(k)) o[k] = S[k]; });
   return o;
 }
 async function cloudBackup(){
@@ -444,6 +444,16 @@ async function loadSheet(force){
         S.games = rowsToGames(parseCSV(await r3.text())); S.gameInfo = {at:Date.now(), n:S.games.length, err:null};
       }catch(e3){ S.gameInfo = Object.assign({}, S.gameInfo||{}, {err:'試合記録シートを読めません（公開設定を確認）'}); }
     }
+    const gw = gu ? gu.replace(/([?&]gid=)\d+/, '$1'+GROWTH_GID) : '';
+    if(gw){
+      try{
+        const r4 = await fetch(gw, {cache:'no-store'}); if(!r4.ok) throw new Error('HTTP '+r4.status);
+        const rows = parseCSV(await r4.text()); const h = (rows[0]||[]).map(x=>x.trim()); const ix = n=>h.indexOf(n);
+        if(ix('日付')<0) throw new Error('列なし');
+        S.growth = rows.slice(1).map(r=>({date:toDk(r[ix('日付')]), kind:String(r[ix('種類')]||'').trim(), text:String(r[ix('内容')]||'').trim(), xp:+(r[ix('XP')]||0)||0})).filter(x=>x.date && x.text);
+        S.growthInfo = {at:Date.now(), n:S.growth.length, err:null};
+      }catch(e4){ S.growthInfo = Object.assign({}, S.growthInfo||{}, {err:'成長の記録シートを読めません（公開設定を確認）'}); }
+    }
     autoCredit();
     save();
   }catch(e){
@@ -461,7 +471,7 @@ function allItems(){
 function lastDay(x){ return x.end || x.date; }
 
 /* ---------- Googleカレンダー（Koki Schedule）→「カレンダー」シート → アプリ ---------- */
-const GAME_GID = 3;
+const GAME_GID = 3, GROWTH_GID = 6;
 const CAL_GID = 4;   // スプレッドシート内「カレンダー」シートのID
 function gameUrl(){ const u = sheetUrl(); if(!u) return ''; return /[?&]gid=\d+/.test(u) ? u.replace(/([?&]gid=)\d+/, '$1'+GAME_GID) : ''; }
 function rowsToGames(rows){
@@ -631,6 +641,7 @@ function summary(){
     }
   }
   themes[0] += bonus;
+  (S.growth||[]).forEach(g=>{ if(g.date > tk) return; themes[6] += g.xp; if(g.date >= mk) week += g.xp; if(g.date === tk) todayXP += g.xp; });
   const streak = active(S.days[tk]) ? run : (run); // 今日まだでも昨日までの継続を表示
   const month = keys.filter(k=>k.slice(0,7)===tk.slice(0,7) && k<=tk && active(S.days[k])).length;
   const total = themes.reduce((a,b)=>a+b,0);
@@ -760,6 +771,14 @@ function vHome(){
       <span class="small muted">つぎのレベルまで あと<span class="num">${L.toNext}</span>XP</span>
     </div>
   </button>
+  ${(()=>{ const g = activeGoal(todayKey()); if(!g) return ''; const hit = goalHit(todayKey(), S.days[todayKey()]||{}); const mm = +g.to.slice(5,7);
+    return `<button class="panel stack" data-go="jishu" style="gap:6px;text-align:left;width:100%;border:2px solid var(--t4);background:linear-gradient(135deg, rgba(239,142,142,.18), var(--panel))">
+      <div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag" style="background:var(--t4);color:#1a0d0d">${mm}月の目標</span><span class="small muted">${esc(g.who)}が自分で決めた</span></div>
+      <span style="font-family:var(--f-display);font-size:24px;line-height:1.3;color:var(--chalk)">${esc(g.text)}</span>
+      <span class="small" style="color:var(--chalk);opacity:.85">${esc(g.note||'')}</span>
+      <span class="small" style="font-weight:900;color:${hit?'var(--ok)':'var(--t4)'}">${hit?'きょうは達成！ +15XPボーナス':'きょうまだ：'+esc(g.how)+'で +15XP'}</span></button>`; })()}
+  ${(()=>{ const G = (S.growth||[]).filter(x=>x.date<=todayKey()).sort((a,b)=>a.date<b.date?1:-1); const x = G[0]; if(!x) return ''; const days = Math.round((parseDk(todayKey())-parseDk(x.date))/86400000); if(days>10) return '';
+    return `<button class="panel stack" data-go="status" style="gap:4px;text-align:left;width:100%;border-color:rgba(143,187,230,.5)"><div class="row" style="gap:6px"><span class="tag" style="background:var(--t7);color:#0c1626">パパから</span><span class="small muted">${esc(x.kind)}・${md(parseDk(x.date))}</span><span class="grow"></span><span class="small" style="color:var(--t7);font-weight:900">⑦ +${x.xp}XP</span></div><span class="small" style="color:var(--chalk)">${esc(x.text)}</span></button>`; })()}
   <div class="stats3">
     <div class="stat"><b>${s.streak}</b><span>日つづけている</span></div>
     <div class="stat"><b>${s.month}</b><span>日 今月記録</span></div>
@@ -768,14 +787,13 @@ function vHome(){
   <div class="panel stack" style="gap:8px">
     <div class="row"><span class="label grow">今週のXP</span><span class="num" style="font-size:20px">${s.week}</span><span class="small muted">/ 目標${WEEK_GOAL}</span></div>
     <div class="bar"><i style="width:${weekPct}%;background:${s.week>=WEEK_GREAT?'var(--ok)':'var(--gold)'}"></i></div>
-    <span class="small muted">${s.week>=WEEK_GREAT?'がんばった週！ 700XPこえ':s.week>=WEEK_GOAL?'今週の目標クリア！ 700XPで「がんばった週」':'目標まで あと'+(WEEK_GOAL-s.week)+'XP'}</span>
+    <span class="small muted">${s.week>=WEEK_GREAT?'がんばった週！ '+WEEK_GREAT+'XPこえ':s.week>=WEEK_GOAL?'今週の目標クリア！ '+WEEK_GREAT+'XPで「がんばった週」':'目標まで あと'+(WEEK_GOAL-s.week)+'XP'}</span>
   </div>
   <section class="panel stack" style="gap:10px;border-color:rgba(224,184,74,.5)">
     <div class="row"><span class="badge">1分でOK</span><h2 class="grow">やったトレーニング・ケアを記録</h2></div>
     <span class="small muted">まずはこれだけ。メニューやケアをタップするだけでOK</span>
     <button class="btn" data-go="jishu">きょうの分を記録する</button>
     <button class="btn ghost" data-act="jyesterday">きのうの分を記録する</button>
-    ${(()=>{ const g = activeGoal(todayKey()); return g ? `<span class="small" style="color:var(--t4);font-weight:800">今週の目標：${esc(g.text)}（${esc(g.how)}で +15XP）</span>` : ''; })()}
   </section>
   <div class="stack" style="gap:8px">
     <div class="stack" style="gap:8px"><h2>時間があるとき</h2><span class="small muted">宿題・テストと、習い事の予定を確認しよう</span>
@@ -788,7 +806,7 @@ function vHome(){
     <button class="panel" data-go="status" style="text-align:left"><h2>ステータス</h2><span class="small muted">8テーマのレベル</span></button>
   </div>
   ${!(S.bkUrl && S.bkInfo && S.bkInfo.ok) && (td.getDay()===0 && S.lastBackup!==todayKey()) || (S.lastBackup && (parseDk(todayKey())-parseDk(S.lastBackup))/86400000>=8) ? '<button class="hint" data-go="parent" style="width:100%;text-align:left">日曜日はバックアップの日：おうちの人 →「記録をコピーする」</button>' : ''}
-  ${(()=>{ const ws = dk(addDays(td, -((td.getDay()+6)%7))); const has = Object.keys(S.days).some(k=>k>=ws && S.days[k].height); return (!has && (td.getDay()===0 || td.getDay()===6)) ? '<button class="hint" data-go="body" style="width:100%;text-align:left">週末は身長をはかる日：ステータス →「からだの記録」</button>' : ''; })()}
+  ${(()=>{ const ws = dk(addDays(td, -((td.getDay()+6)%7))); const has = Object.keys(S.days).some(k=>k>=ws && S.days[k].height); return (!has && td.getDay()>=1 && td.getDay()<=5) ? '<button class="hint" data-go="body" style="width:100%;text-align:left">今週の身長をまだはかっていないよ：ステータス →「からだの記録」</button>' : ''; })()}
   <button class="btn ghost" data-act="backfill" data-n="1">前の日のふり返りをつける</button>
   <button class="btn ghost" data-act="rest" aria-pressed="${!!D.rest}">${D.rest?'きょうは休養日（継続はとぎれません）':'きょうは休養日にする'}</button>
   <p class="small muted" style="text-align:center">めざせ！全日本選手権優勝・ワールドシリーズ出場</p>`;
@@ -913,7 +931,7 @@ function vJishu(){
   ${dsw}
   ${(()=>{ const g = activeGoal(k); if(!g) return ''; const hit = goalHit(k, D);
     return `<section class="panel stack" style="gap:6px;border-color:rgba(239,142,142,.5)"><div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag" style="background:var(--t4);color:#1a0d0d">今週の目標</span><span class="small muted">${esc(g.who)}が決めた</span></div>
-      <b style="font-size:17px">${esc(g.text)}</b><span class="small muted">${esc(g.why)}</span>
+      <b style="font-size:17px">${esc(g.text)}</b><span class="small muted">${esc(g.why)}</span><span class="small">${esc(g.note||'')}</span>
       <span class="small" style="color:${hit?'var(--ok)':'var(--t4)'};font-weight:800">${hit?'きょうは達成！ ④バッティング +15XPボーナス':esc(g.how)+'のどれかをやると +15XPボーナス'}</span></section>`; })()}
   <section class="stack" style="gap:8px"><span class="label" style="color:var(--t7)">⑦ 人として成長（あてはまったらタップ）</span>
     ${JINKAKU.map(j=>{ const on = !!(D.jinkaku||{})[j.id]; return `<button class="check" data-act="jin" data-id="${j.id}" aria-pressed="${on}">${checkBox(on)}<span class="grow"><span class="t">${esc(j.label)}</span><span class="s" style="display:block">${esc(j.note)}</span></span><span class="dot" style="background:var(--t7)"></span></button>`; }).join('')}
@@ -981,6 +999,8 @@ function vStatus(){
     <button class="panel" data-go="casq" style="text-align:left"><h2>キャスク測定会</h2><span class="small muted">自己ベストと記録の推移</span></button>
     <button class="panel" data-go="body" style="text-align:left"><h2>からだの記録</h2><span class="small muted">身長（週1回）</span></button>
   </div>
+  ${(S.growth||[]).length?`<section class="panel stack" style="gap:8px;border-color:rgba(143,187,230,.45)"><span class="label" style="color:var(--t7)">⑦ 人として成長：パパからの記録</span>
+    ${(S.growth||[]).slice().sort((a,b)=>a.date<b.date?1:-1).map(x=>`<div class="stack" style="gap:2px;border-top:1px solid var(--line);padding-top:6px"><div class="row"><span class="small muted grow">${md(parseDk(x.date))}・${esc(x.kind)}</span><span class="small" style="color:var(--t7);font-weight:900">+${x.xp}XP</span></div><span class="small">${esc(x.text)}</span></div>`).join('')}</section>`:''}
   <section class="stack" style="gap:8px"><span class="label">8つのテーマ（タップでXPのもらい方）</span>
   ${THEMES.map((T,i)=>{ const I = lvInfo(s.themes[i],25); const open = statusOpen===i; return `<button class="theme-row" data-act="topen" data-i="${i}" aria-expanded="${open}">
     <div class="row"><span class="dot" style="background:${T.color}"></span><span class="grow" style="font-weight:900">${T.name}</span><span class="small muted num">${s.themes[i]}XP</span><span class="num" style="font-size:18px;color:${T.color};min-width:44px;text-align:right">LV${I.lv}</span></div>
@@ -1003,6 +1023,7 @@ function vParent(){
   const fmt = t=>{ const d = new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); };
   const status = !url ? '<p class="note">まだ設定されていません。いまは手入力のテスト予定を表示しています</p>'
     : `<p class="small muted">${sh.at?'最後に読み込んだ時刻：'+fmt(sh.at)+'（'+(sh.items||[]).length+'行）':'まだ読み込めていません'}</p>${sh.err?`<p class="small" style="color:var(--warn)">読み込みエラー：${esc(sh.err)}${sh.at?'（前回の内容を表示中）':''}</p>`:''}
+      ${(()=>{ const gi = S.growthInfo||{}; return `<p class="small muted">成長の記録：${gi.err?'<span style="color:var(--warn)">'+esc(gi.err)+'</span>':gi.at?gi.n+'件を読み込みずみ':'まだ読み込めていません'}</p>`; })()}
       ${(()=>{ const gi = S.gameInfo||{}; return `<p class="small muted">試合記録：${gi.err?'<span style="color:var(--warn)">'+esc(gi.err)+'</span>':gi.at?gi.n+'試合を読み込みずみ':'まだ読み込めていません'}</p>`; })()}
       ${(()=>{ const ci = S.calInfo||{}; return `<p class="small muted">カレンダー：${ci.from?ci.from.slice(5).replace('-','/')+'〜'+ci.to.slice(5).replace('-','/')+' の予定を読み込みずみ（'+fmt(ci.at)+'）':'まだ読み込めていません（曜日パターンで表示中）'}</p>${ci.err?`<p class="small" style="color:var(--warn)">カレンダー読み込みエラー：${esc(ci.err)}</p>`:''}`; })()}`;
   const fromSheet = allItems().filter(x=>x.src!=='manual' && lastDay(x)>=k && !isDone(x)).sort((a,b)=>a.date<b.date?-1:1);
