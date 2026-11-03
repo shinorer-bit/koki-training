@@ -43,11 +43,11 @@ h1{font-family:var(--f-display);font-weight:400;font-size:24px;letter-spacing:.0
 h2{font-size:15px;font-weight:900}
 p{margin:0}
 .muted{color:var(--muted)}
-.small{font-size:13px}
+.small{font-size:14px}
 .num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:.01em}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px}
 .back{background:none;border:0;color:var(--muted);font-weight:700;font-size:14px;padding:6px 0;min-height:40px}
-.step{font-size:12px;font-weight:900;color:var(--gold);letter-spacing:.06em}
+.step{font-size:13px;font-weight:900;color:var(--gold);letter-spacing:.06em}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
 .stack{display:flex;flex-direction:column;gap:10px}
 .row{display:flex;align-items:center;gap:10px}
@@ -66,11 +66,11 @@ p{margin:0}
 .box{width:24px;height:24px;flex:none;border-radius:7px;border:2px solid rgba(239,233,219,.35);display:grid;place-items:center}
 .check[aria-pressed="true"] .box{background:var(--gold);border-color:var(--gold)}
 .check .t{font-weight:800;font-size:15px}
-.check .s{font-size:12.5px;color:var(--muted)}
-.tag{font-size:11.5px;font-weight:900;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.check .s{font-size:13.5px;color:var(--muted)}
+.tag{font-size:12.5px;font-weight:900;border-radius:999px;padding:3px 9px;white-space:nowrap}
 .tag.gold{background:var(--gold);color:var(--gold-ink)}
 .tag.blue{background:rgba(143,187,230,.16);color:var(--t7)}
-.reason{font-size:12.5px;color:var(--gold);margin-top:2px}
+.reason{font-size:13.5px;color:var(--gold);margin-top:2px}
 .dot{width:10px;height:10px;border-radius:50%;flex:none}
 .bar{height:8px;border-radius:999px;background:rgba(239,233,219,.08);overflow:hidden}
 .bar>i{display:block;height:100%;border-radius:999px;background:var(--gold)}
@@ -96,7 +96,7 @@ p{margin:0}
 .lv{width:66px;height:66px;flex:none;border-radius:50%;border:3px solid var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
 .lv small{font-size:11px;color:var(--gold);font-weight:900}
 .lv b{font-family:var(--f-num);font-size:30px;color:var(--gold)}
-.badge{display:inline-block;font-size:11.5px;font-weight:900;background:var(--gold);color:var(--gold-ink);border-radius:999px;padding:2px 9px}
+.badge{display:inline-block;font-size:12.5px;font-weight:900;background:var(--gold);color:var(--gold-ink);border-radius:999px;padding:2px 9px}
 .badge.alt{background:var(--panel-2);color:var(--chalk);border:1px solid var(--line)}
 .now{display:block;width:100%;text-align:left;border:0;border-radius:18px;padding:18px;color:var(--gold-ink)}
 .now .when{font-size:13px;font-weight:900;opacity:.75}
@@ -106,7 +106,7 @@ p{margin:0}
 .stats3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
 .stat b{display:block;font-family:var(--f-num);font-size:28px;line-height:1.1;color:var(--chalk)}
-.stat span{font-size:12px;color:var(--muted)}
+.stat span{font-size:13px;color:var(--muted)}
 .theme-row{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .mini{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .mini div{background:var(--panel);border-radius:10px;padding:7px 8px;display:flex;flex-direction:column;gap:4px}
@@ -145,11 +145,11 @@ const THEMES = [
   {name:'① メンタル', short:'メンタル', color:'var(--t1)', how:'「今日がんばったこと」の記録、継続ボーナス（7日・30日・100日）'},
   {name:'② 体力・持久力', short:'体力', color:'var(--t2)', how:'モビリティ、ケア（ストレッチポール・静的ストレッチ・マッサージ・マイクロカレント）、下半身・上半身・体幹トレ、スイミング'},
   {name:'③ 走力・俊敏性', short:'走力', color:'var(--t3)', how:'キャスク、ラダートレーニング、ムーブメントスキル、プライオ、モーターコントロール、プレパレーション、切り返しトレ、ステップ台'},
-  {name:'④ バッティング', short:'打撃', color:'var(--t4)', how:'素振り、置きティー、龍之介コーチ、川上コーチ（バッティング）'},
+  {name:'④ バッティング', short:'打撃', color:'var(--t4)', how:'素振り、置きティー、龍之介コーチ、川上コーチ（バッティング）、今週の目標ボーナス（+15）'},
   {name:'⑤ 守備・送球', short:'守備', color:'var(--t5)', how:'守備練習、シャドウピッチング、メディシンボール、うつ伏せスイミング、川上コーチ（守備）'},
   {name:'⑥ 大会・実戦経験', short:'実戦', color:'var(--t6)', how:'チーム練習（30）・試合（40）'},
-  {name:'⑦ 人として成長', short:'人間力', color:'var(--t7)', how:'（試用版のあとで追加）コーチの言葉の記録、チームのためにしたこと'},
-  {name:'⑧ 生活習慣', short:'生活', color:'var(--t8)', how:'朝のチェック、帰宅チェック、体重をはかる、プロテイン・リカバリードリンク、早寝（21時で満点）、夜のふり返り'},
+  {name:'⑦ 人として成長', short:'人間力', color:'var(--t7)', how:'自主トレ画面の「人として成長」：あいさつ、チームのために動いた、コーチに教わったことを試した（各10XP）'},
+  {name:'⑧ 生活習慣', short:'生活', color:'var(--t8)', how:'朝のチェック、帰宅チェック、体重をはかる、プロテイン・リカバリードリンク、早寝（21時で満点）、夜のふり返り、身長をはかる（週1回）'},
 ];
 const MENUS = [
   {id:'mobility', g:'proto', label:'モビリティ', sub:'PMA または 4Dストレッチ', th:1, mins:[10,15,20]},
@@ -233,6 +233,34 @@ const PROTO = {
         ['Medicine Ball Overhead Backward Throw','4×2','','全力で',0,'zo6wMEMkxQ4'],
         ['Lin-Horiz MB Underhand Toss Base CM','4×2','','全力で',0,'mrK-nDTP93E']]},
 };
+/* 今週の目標（コーチの言葉・こうき自身の目標）。期間中、関連する練習をした日に +15XP */
+const GOALS = [
+  {from:'2026-11-03', to:'2026-11-30', who:'こうき', text:'もっとバッティングをがんばる', why:'全国大会で高いレベルのピッチャーを見て、自分で決めた目標', th:3, menus:['suburi','okiTee'], lessons:['ryu','kawakami'], how:'素振り・置きティー・龍之介コーチ・川上コーチ'},
+];
+function activeGoal(k){ return GOALS.find(g=>g.from<=k && k<=g.to) || null; }
+function goalHit(k, D){ const g = activeGoal(k); if(!g) return false; const M = D.menus||{}, L = D.lessons||{}; return g.menus.some(id=>M[id]) || g.lessons.some(id=>L[id]==='yes'); }
+/* ⑦ 人として成長：こうきのマンダラ「人として成長する・チームワーク・コーチとの連携」より */
+const JINKAKU = [
+  {id:'aisatsu', label:'会った人にきっちりあいさつした', note:'コーチの言葉'},
+  {id:'team', label:'チームのため・人のために動いた', note:'チームワーク'},
+  {id:'coach', label:'コーチに教わったことを練習で試した', note:'コーチとの連携'},
+];
+/* キャスク測定会（蒲田校・東陽町校の記録を統合） */
+const CASQ_ITEMS = [
+  {id:'t10', name:'初速パワー', sub:'10M走', unit:'秒', low:true},
+  {id:'t30', name:'スプリント', sub:'30M走', unit:'秒', low:true},
+  {id:'react', name:'リアクション', sub:'10Mリアクション走', unit:'秒', low:true},
+  {id:'agi', name:'アジリティ', sub:'5-10-5M', unit:'秒', low:true},
+  {id:'broad', name:'脚力ジャンプ', sub:'立ち幅跳び', unit:'cm', low:false},
+  {id:'vert', name:'バーティカル', sub:'垂直跳び', unit:'cm', low:false},
+];
+const CASQ_EP = [
+  {date:'2025-06-25', school:'蒲田', v:{t10:2.13, t30:5.36, react:2.73, agi:5.68, broad:153, vert:36}},
+  {date:'2025-12-10', school:'蒲田', v:{t10:2.08, t30:5.25, react:2.68, agi:5.60, broad:162}},
+  {date:'2026-04-27', school:'東陽町', v:{t10:2.15, t30:5.15, react:2.70, agi:5.72, broad:164, vert:42}},
+  {date:'2026-09-14', school:'東陽町', v:{t30:5.58, react:2.68, agi:6.01, broad:160, vert:41}},
+];
+function casqAll(){ const m = {}; CASQ_EP.concat(S.casq||[]).forEach(e=>{ m[e.date] = e; }); return Object.values(m).sort((a,b)=>a.date<b.date?-1:1); }
 function protoVids(P){ return (P.ex||[]).filter(x=>!x[4] && x[5]).map(x=>x[5]); }
 
 const GROUPS = [
@@ -324,9 +352,9 @@ async function cloudBackup(){
 function mergeDay(a, b){
   const OR = ['morningDone','nightDone','backDone','rest','weighed','planSaved','teamSet'];
   OR.forEach(f=>{ if(b[f]) a[f] = true; });
-  ['menus','ganbatta','morningChecks','cancelled'].forEach(f=>{ if(b[f]){ a[f] = a[f]||{}; Object.keys(b[f]).forEach(id=>{ if(b[f][id]) a[f][id] = b[f][id]; }); } });
+  ['menus','ganbatta','morningChecks','cancelled','jinkaku'].forEach(f=>{ if(b[f]){ a[f] = a[f]||{}; Object.keys(b[f]).forEach(id=>{ if(b[f][id]) a[f][id] = b[f][id]; }); } });
   if(b.lessons){ a.lessons = a.lessons||{}; Object.keys(b.lessons).forEach(id=>{ if(b.lessons[id]==='no' || a.lessons[id]==null) a.lessons[id] = b.lessons[id]; }); }
-  ['weight','sleep','hw','testConfirm','testStudy','studyMin','kawakami','plan','morningPlan'].forEach(f=>{ if(a[f]==null && b[f]!=null) a[f] = b[f]; });
+  ['height','weight','sleep','hw','testConfirm','testStudy','studyMin','kawakami','plan','morningPlan'].forEach(f=>{ if(a[f]==null && b[f]!=null) a[f] = b[f]; });
   if(b.team!=null && (a.team==null || (b.teamSet && !a.teamSet))) a.team = b.team;
   if(a.team && b.autoTeam===false) a.autoTeam = false;
   return a;
@@ -335,6 +363,7 @@ function mergeState(o){
   Object.keys(o.days||{}).forEach(k=>{ S.days[k] = mergeDay(S.days[k]||{}, o.days[k]||{}); });
   if(o.doneLocal){ S.doneLocal = Object.assign({}, o.doneLocal, S.doneLocal||{}); }
   (o.tests||[]).forEach(t=>{ S.tests = S.tests||[]; if(!S.tests.some(x=>x.date===t.date && x.label===t.label)) S.tests.push(t); });
+  (o.casq||[]).forEach(e=>{ S.casq = S.casq||[]; if(!S.casq.some(x=>x.date===e.date)) S.casq.push(e); });
   if(o.seen && o.seen.maxLv > ((S.seen||{}).maxLv||1)){ S.seen = S.seen||{}; S.seen.maxLv = o.seen.maxLv; }
 }
 let pullBusy = false, pullAt = 0;
@@ -569,6 +598,9 @@ function dayXP(k, D){
   if(mp.length && mp.every(b=>(D.morningChecks||{})[b.id])) t[7] += 10;
   if(D.nightDone) t[7] += 5;
   if(D.backDone) t[7] += 5;
+  Object.keys(D.jinkaku||{}).forEach(id=>{ if(D.jinkaku[id]) t[6] += 10; });
+  if(D.height) t[7] += 10;
+  if(goalHit(k, D)){ const g = activeGoal(k); t[g.th] += 15; }
   return t;
 }
 function sleepStars(mins){ return mins<=m(21)?3 : mins<=m(21,30)?2 : mins<=m(22)?1 : 0; }
@@ -743,6 +775,7 @@ function vHome(){
     <span class="small muted">まずはこれだけ。メニューやケアをタップするだけでOK</span>
     <button class="btn" data-go="jishu">きょうの分を記録する</button>
     <button class="btn ghost" data-act="jyesterday">きのうの分を記録する</button>
+    ${(()=>{ const g = activeGoal(todayKey()); return g ? `<span class="small" style="color:var(--t4);font-weight:800">今週の目標：${esc(g.text)}（${esc(g.how)}で +15XP）</span>` : ''; })()}
   </section>
   <div class="stack" style="gap:8px">
     <div class="stack" style="gap:8px"><h2>時間があるとき</h2><span class="small muted">宿題・テストと、習い事の予定を確認しよう</span>
@@ -755,6 +788,7 @@ function vHome(){
     <button class="panel" data-go="status" style="text-align:left"><h2>ステータス</h2><span class="small muted">8テーマのレベル</span></button>
   </div>
   ${!(S.bkUrl && S.bkInfo && S.bkInfo.ok) && (td.getDay()===0 && S.lastBackup!==todayKey()) || (S.lastBackup && (parseDk(todayKey())-parseDk(S.lastBackup))/86400000>=8) ? '<button class="hint" data-go="parent" style="width:100%;text-align:left">日曜日はバックアップの日：おうちの人 →「記録をコピーする」</button>' : ''}
+  ${(()=>{ const ws = dk(addDays(td, -((td.getDay()+6)%7))); const has = Object.keys(S.days).some(k=>k>=ws && S.days[k].height); return (!has && (td.getDay()===0 || td.getDay()===6)) ? '<button class="hint" data-go="body" style="width:100%;text-align:left">週末は身長をはかる日：ステータス →「からだの記録」</button>' : ''; })()}
   <button class="btn ghost" data-act="backfill" data-n="1">前の日のふり返りをつける</button>
   <button class="btn ghost" data-act="rest" aria-pressed="${!!D.rest}">${D.rest?'きょうは休養日（継続はとぎれません）':'きょうは休養日にする'}</button>
   <p class="small muted" style="text-align:center">めざせ！全日本選手権優勝・ワールドシリーズ出場</p>`;
@@ -877,6 +911,13 @@ function vJishu(){
   const teamQ = (TP.team || TP.weekend || today().getDay()===0 || today().getDay()===6) ? `<section class="panel stack" style="gap:8px"><span class="label">チームの練習・試合</span><div class="seg">${[['practice','練習'],['game','試合'],['none','なし']].map(([v,l])=>`<button data-act="set" data-f="team" data-v="${v}" aria-pressed="${(D.team||'none')===v}">${l}</button>`).join('')}</div>${gHtml}</section>` : '';
   return hdr('自主トレチェック','home')+`
   ${dsw}
+  ${(()=>{ const g = activeGoal(k); if(!g) return ''; const hit = goalHit(k, D);
+    return `<section class="panel stack" style="gap:6px;border-color:rgba(239,142,142,.5)"><div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag" style="background:var(--t4);color:#1a0d0d">今週の目標</span><span class="small muted">${esc(g.who)}が決めた</span></div>
+      <b style="font-size:17px">${esc(g.text)}</b><span class="small muted">${esc(g.why)}</span>
+      <span class="small" style="color:${hit?'var(--ok)':'var(--t4)'};font-weight:800">${hit?'きょうは達成！ ④バッティング +15XPボーナス':esc(g.how)+'のどれかをやると +15XPボーナス'}</span></section>`; })()}
+  <section class="stack" style="gap:8px"><span class="label" style="color:var(--t7)">⑦ 人として成長（あてはまったらタップ）</span>
+    ${JINKAKU.map(j=>{ const on = !!(D.jinkaku||{})[j.id]; return `<button class="check" data-act="jin" data-id="${j.id}" aria-pressed="${on}">${checkBox(on)}<span class="grow"><span class="t">${esc(j.label)}</span><span class="s" style="display:block">${esc(j.note)}</span></span><span class="dot" style="background:var(--t7)"></span></button>`; }).join('')}
+  </section>
   ${teamQ}
   ${lessonQ}
   <div class="row"><p class="small muted grow" style="min-width:0">やったらタップ。いつでも記録できるよ</p><span style="white-space:nowrap;flex:none"><span class="num" style="font-size:24px;color:var(--gold)">${done}</span><span class="small muted"> こ</span></span></div>
@@ -885,7 +926,7 @@ function vJishu(){
     ${recs.map(([id,why])=>item(id, `<span class="reason" style="display:block">${why}</span>`)).join('')}
     <p class="small">えらぶのは自分。やりたいメニューからやってOK！</p>
   </section>
-  ${GROUPS.map(G=>`<section class="stack" style="gap:8px"><span class="label">${G.name}</span>${MENUS.filter(M=>M.g===G.g).map(M=>PROTO[M.id] ? `<div class="row" style="gap:8px;align-items:stretch"><div class="grow" style="min-width:0">${item(M.id, `<span class="s" style="display:block">（${esc(PROTO[M.id].why.sub)}）${esc(PROTO[M.id].why.purpose)}</span><span class="s" style="display:block;color:var(--gold)">→ ${esc(PROTO[M.id].why.goal)}</span>`)}</div><button class="mins" style="flex:none;min-width:64px;font-size:12.5px;line-height:1.2" data-act="proto" data-id="${M.id}">▶<br>動画</button></div>` : item(M.id)).join('')}</section>`).join('')}`;
+  ${GROUPS.map(G=>`<section class="stack" style="gap:8px"><span class="label">${G.name}</span>${MENUS.filter(M=>M.g===G.g).map(M=>PROTO[M.id] ? `<div class="row" style="gap:8px;align-items:stretch"><div class="grow" style="min-width:0">${item(M.id, `<span class="s" style="display:block">（${esc(PROTO[M.id].why.sub)}）${esc(PROTO[M.id].why.purpose)}</span><span class="s" style="display:block;color:var(--gold)">→ ${esc(PROTO[M.id].why.goal)}</span>`)}</div><button style="flex:none;min-width:64px;font-size:13px;font-weight:900;line-height:1.2;border-radius:12px;background:var(--panel);border:1px solid rgba(224,184,74,.45);color:var(--gold)" data-act="proto" data-id="${M.id}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><br>動画</button></div>` : item(M.id)).join('')}</section>`).join('')}`;
 }
 
 /* --- 夜のふり返り① --- */
@@ -935,6 +976,11 @@ function vStatus(){
   return hdr('ステータス','home')+`
   <section class="panel row"><div class="lv"><small>LV</small><b>${L.lv}</b></div><div class="grow stack" style="gap:6px"><span class="small muted">ぜんぶのXP <span class="num" style="font-size:18px;color:var(--chalk)">${s.total}</span></span><div class="bar"><i style="width:${L.pct}%"></i></div><span class="small muted">つぎのレベルまで あと${L.toNext}XP</span></div></section>
   <div class="stats3"><div class="stat"><b>${s.streak}</b><span>日つづけている</span></div><div class="stat"><b>${s.month}</b><span>日 今月記録</span></div><div class="stat"><b>${s.week}</b><span>XP 今週</span></div></div>
+  <div class="grid2">
+    <button class="panel" data-go="games" style="text-align:left"><h2>試合の記録</h2><span class="small muted">通算成績と試合ごとの結果</span></button>
+    <button class="panel" data-go="casq" style="text-align:left"><h2>キャスク測定会</h2><span class="small muted">自己ベストと記録の推移</span></button>
+    <button class="panel" data-go="body" style="text-align:left"><h2>からだの記録</h2><span class="small muted">身長（週1回）</span></button>
+  </div>
   <section class="stack" style="gap:8px"><span class="label">8つのテーマ（タップでXPのもらい方）</span>
   ${THEMES.map((T,i)=>{ const I = lvInfo(s.themes[i],25); const open = statusOpen===i; return `<button class="theme-row" data-act="topen" data-i="${i}" aria-expanded="${open}">
     <div class="row"><span class="dot" style="background:${T.color}"></span><span class="grow" style="font-weight:900">${T.name}</span><span class="small muted num">${s.themes[i]}XP</span><span class="num" style="font-size:18px;color:${T.color};min-width:44px;text-align:right">LV${I.lv}</span></div>
@@ -946,7 +992,7 @@ function vStatus(){
     return `<section class="panel stack" style="gap:10px"><div class="row"><span class="label grow">称号</span><span class="small muted">${got.length} / ${T.length}</span></div>
       <div class="row" style="flex-wrap:wrap;gap:6px">${got.map((t,i)=>`<span class="badge${i?' alt':''}">${esc(t.name)}</span>`).join('')}</div>
       <span class="label" style="margin-top:4px">つぎにねらえる称号</span>
-      ${nx.map(t=>`<div class="row" style="align-items:flex-start"><span class="small" style="flex:none;opacity:.45">🔒</span><span class="small grow" style="min-width:0"><b>${esc(t.name)}</b><br><span class="muted">${esc(t.how)}${t.left?'（あと'+t.left+(t.unit||'')+'）':''}</span></span></div>`).join('')}
+      ${nx.map(t=>`<div class="row" style="align-items:flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="small grow" style="min-width:0"><b>${esc(t.name)}</b><br><span class="muted">${esc(t.how)}${t.left?'（あと'+t.left+(t.unit||'')+'）':''}</span></span></div>`).join('')}
     </section>`; })()}`;
 }
 
@@ -1063,7 +1109,82 @@ function mountYT(){
       onError: ()=>{ const ol = document.getElementById('plist'); if(ol) ol.innerHTML = '<li class="small" style="color:var(--warn)">動画を読み込めませんでした。再生リストが「限定公開」か、リンクが正しいかを確認してください</li>'; }
     }});
 }
-const VIEWS = {proto:vProto, home:vHome, morning:vMorning, back1:vBack1, back2:vBack2, jishu:vJishu, night1:vNight1, night2:vNight2, status:vStatus, parent:vParent};
+
+/* --- 試合の記録 --- */
+function gameStats(){
+  const G = (S.games||[]).slice().sort((a,b)=>a.date<b.date?1:-1);
+  const t = {g:0, ab:0, h:0, bb:0, rbi:0, r:0, ch:0, po:0, a:0, e:0};
+  const n = (str,re)=>{ const m = String(str||'').match(re); return m ? +m[1] : 0; };
+  G.forEach(x=>{ if(!x.play || x.play==='-' || /出場なし/.test(x.play)) return; t.g++;
+    t.ab += n(x.bat,/(\d+)打数/); t.h += n(x.bat,/(\d+)安打/); t.bb += n(x.bat,/(\d+)四球/); t.rbi += n(x.bat,/(\d+)打点/); t.r += n(x.bat,/(\d+)得点/);
+    t.ch += n(x.field,/守備機会\s*(\d+)/); t.po += n(x.field,/刺殺\s*(\d+)/); t.a += n(x.field,/補殺\s*(\d+)/); t.e += n(x.field,/失策\s*(\d+)/); });
+  const avg = t.ab ? (t.h/t.ab).toFixed(3).replace(/^0/,'') : '-';
+  const obp = (t.ab+t.bb) ? ((t.h+t.bb)/(t.ab+t.bb)).toFixed(3).replace(/^0/,'') : '-';
+  const fpct = (t.po+t.a+t.e) ? ((t.po+t.a)/(t.po+t.a+t.e)).toFixed(3).replace(/^0/,'') : '-';
+  return {G, t, avg, obp, fpct};
+}
+function vGames(){
+  const {G, t, avg, obp, fpct} = gameStats();
+  const box = (v,l)=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`;
+  return hdr('試合の記録','status')+`
+  <section class="panel stack" style="gap:10px"><span class="label">こうきの通算成績（出場${t.g}試合）</span>
+    <div class="stats3">${box(avg,'打率')}${box(t.h+'/'+t.ab,'安打/打数')}${box(obp,'出塁率')}</div>
+    <div class="stats3">${box(t.rbi,'打点')}${box(t.r,'得点')}${box(t.bb,'四球')}</div>
+    <div class="stats3">${box(t.ch,'守備機会')}${box(t.po+t.a,'アウトにした')}${box(fpct,'守備率')}</div>
+    <span class="small muted">試合記録シート（大会戦績記録）から自動で集計しています</span>
+  </section>
+  <section class="stack" style="gap:8px"><span class="label">試合ごと（新しい順）</span>
+    ${G.length ? G.map(g=>{ const win = /〇|勝/.test(g.result) && !/●/.test(g.result); const played = g.play && g.play!=='-' && !/出場なし/.test(g.play);
+      return `<div class="panel stack" style="gap:4px"><div class="row" style="gap:6px;flex-wrap:wrap"><span class="small num muted">${esc(g.date.slice(5).replace('-','/'))}</span><span class="small muted" style="min-width:0">${esc(g.cup)} ${esc(g.round)}</span></div>
+        <div class="row"><b class="grow" style="min-width:0">vs ${esc(g.vs)}</b><span class="num" style="font-size:18px">${esc(g.score)}</span><span class="tag ${win?'gold':''}">${esc(String(g.result).replace(/（.*）/,''))}</span></div>
+        ${played?`<span class="small">${esc(g.play)}</span>${g.bat&&g.bat!=='-'?`<span class="small muted">打撃：${esc(g.bat)}</span>`:''}${g.field&&g.field!=='-'?`<span class="small muted">守備：${esc(g.field)}</span>`:''}`:'<span class="small muted">出場なし</span>'}</div>`; }).join('') : '<p class="note">試合記録がまだ読み込まれていません</p>'}
+  </section>`;
+}
+/* --- キャスク測定会 --- */
+function vCasq(){
+  const E = casqAll();
+  const best = id=>{ const it = CASQ_ITEMS.find(x=>x.id===id); let b = null, at = null; E.forEach((e,i)=>{ const v = e.v[id]; if(v==null) return; if(b==null || (it.low ? v<=b : v>=b)){ b = v; at = i; } }); return {b, at}; };
+  const last = E[E.length-1];
+  return hdr('キャスク測定会','status')+`
+  <section class="panel stack" style="gap:6px"><span class="label">これまでの測定（${E.length}回）</span>
+    <div class="row" style="flex-wrap:wrap;gap:6px">${E.map((e,i)=>`<span class="tag ${i===E.length-1?'gold':''}">EP.${i+1} ${esc(e.school)} ${esc(e.date.slice(2).replace(/-/g,'/'))}</span>`).join('')}</div>
+  </section>
+  <section class="stack" style="gap:8px">
+  ${CASQ_ITEMS.map(it=>{ const {b, at} = best(it.id); const lv = last && last.v[it.id];
+    const vals = E.map(e=>e.v[it.id]).filter(v=>v!=null); const mn = Math.min(...vals), mx = Math.max(...vals);
+    const pct = v=>{ if(mx===mn) return 100; const r = (v-mn)/(mx-mn); return Math.round(30 + 70*(it.low ? 1-r : r)); };
+    const badge = lv==null ? 'EP.'+E.length+' 未測定' : (at===E.length-1 ? (E.slice(0,-1).some(e=>e.v[it.id]===b) ? 'EP.'+E.length+'で自己ベストに並んだ' : 'EP.'+E.length+'で自己ベスト更新！') : '自己ベストはEP.'+(at+1));
+    return `<div class="panel stack" style="gap:6px"><div class="row"><b class="grow">${it.name}<span class="small muted">（${it.sub}）</span></b><span class="small" style="color:var(--gold);font-weight:900">${badge}</span></div>
+      ${E.map((e,i)=>{ const v = e.v[it.id]; return `<div class="row" style="gap:8px"><span class="small num muted" style="width:40px;flex:none">EP.${i+1}</span><div class="bar grow"><i style="width:${v==null?0:pct(v)}%;background:${i===at?'var(--gold)':'var(--t3)'}"></i></div><span class="num small" style="width:62px;text-align:right;flex:none">${v==null?'未測定':(it.unit==='秒'?v.toFixed(2):v)+it.unit}</span></div>`; }).join('')}
+      <span class="small muted">${it.low?'タイムは短いほど良い':'記録は大きいほど良い'}</span></div>`; }).join('')}
+  </section>
+  <details class="panel"><summary class="small">新しい測定会の結果を入れる（おうちの人）</summary>
+    <div class="stack" style="gap:8px;margin-top:8px">
+      <label class="small" for="cq_date">日付</label><input id="cq_date" type="date">
+      <label class="small" for="cq_school">スクール</label><input id="cq_school" type="text" value="東陽町">
+      ${CASQ_ITEMS.map(it=>`<label class="small" for="cq_${it.id}">${it.name}（${it.sub}・${it.unit}）</label><input id="cq_${it.id}" type="number" inputmode="decimal" step="0.01" placeholder="未測定なら空のまま">`).join('')}
+      <button class="btn ghost" data-act="casqAdd">この結果を保存</button><p id="cqmsg" class="small" style="color:var(--gold)"></p>
+    </div></details>`;
+}
+/* --- からだの記録（身長） --- */
+function heights(){ return Object.keys(S.days).sort().filter(k=>S.days[k].height).map(k=>({k, v:S.days[k].height})); }
+function vBody(){
+  const H = heights(); const D = S.days[todayKey()]||{};
+  const first = H[0], last = H[H.length-1];
+  const wkStart = dk(addDays(today(), -((today().getDay()+6)%7)));
+  const thisWeek = H.some(h=>h.k>=wkStart);
+  return hdr('からだの記録','status')+`
+  <section class="panel stack" style="gap:8px"><span class="label">身長（週1回はかろう）</span>
+    ${last?`<div class="row"><span class="big" style="font-size:44px">${last.v}</span><span class="small muted">cm（${md(parseDk(last.k))}）</span></div>`:''}
+    ${first&&last&&H.length>1?`<span class="small" style="color:var(--ok);font-weight:900">はかり始めてから ${(last.v-first.v>=0?'+':'')+(Math.round((last.v-first.v)*10)/10)}cm</span>`:''}
+    <span class="small ${thisWeek?'':'muted'}" style="${thisWeek?'color:var(--ok);font-weight:800':''}">${thisWeek?'今週はもう記録したよ':'今週はまだ記録していません（⑧生活習慣 +10XP）'}</span>
+    <div class="row"><input id="hcm" type="number" inputmode="decimal" step="0.1" min="100" max="200" placeholder="例：141.5" value="${D.height||''}"><span class="muted">cm</span></div>
+    <button class="btn ghost" data-act="hSave">きょうの身長を記録</button>
+  </section>
+  ${H.length?`<section class="stack" style="gap:6px"><span class="label">これまでの記録</span>${H.slice().reverse().map(h=>`<div class="row panel" style="padding-block:8px"><span class="small grow">${md(parseDk(h.k))}</span><span class="num">${h.v} cm</span></div>`).join('')}</section>`:''}
+  <p class="small muted">体重は体重計のアプリで確認します。ここでは朝のチェックで「はかった」をタップ</p>`;
+}
+const VIEWS = {games:vGames, casq:vCasq, body:vBody, proto:vProto, home:vHome, morning:vMorning, back1:vBack1, back2:vBack2, jishu:vJishu, night1:vNight1, night2:vNight2, status:vStatus, parent:vParent};
 let lastTotal = null, lastLv = null;
 function render(){
   if(ytPlayer && view!=='proto'){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer = null; }
@@ -1124,6 +1245,12 @@ document.addEventListener('click', e=>{
     case 'proto': protoId = b.dataset.id; go('proto'); return;
     case 'ytgo': if(ytPlayer && ytPlayer.playVideoAt) ytPlayer.playVideoAt(+b.dataset.i); return;
     case 'protoDone': { D.menus = D.menus||{}; D.menus[protoId] = !D.menus[protoId]; const was = D.menus[protoId]; if(ytPlayer){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer = null; } afterChange(); go('jishu'); if(was) toast('記録したよ！'); return; }
+    case 'jin': { D.jinkaku = D.jinkaku||{}; D.jinkaku[b.dataset.id] = !D.jinkaku[b.dataset.id]; break; }
+    case 'hSave': { const v = parseFloat(document.getElementById('hcm').value); if(!(v>=100 && v<=200)){ toast('身長をcmで入れてね'); return; } D.height = Math.round(v*10)/10; break; }
+    case 'casqAdd': { const g = id=>document.getElementById(id).value; const d = g('cq_date'); const msg = document.getElementById('cqmsg');
+      if(!d){ msg.textContent = '日付を入れてください'; return; } const v = {}; CASQ_ITEMS.forEach(it=>{ const x = parseFloat(g('cq_'+it.id)); if(isFinite(x)) v[it.id] = x; });
+      if(!Object.keys(v).length){ msg.textContent = '記録を1つ以上入れてください'; return; }
+      S.casq = (S.casq||[]).filter(e=>e.date!==d); S.casq.push({date:d, school:g('cq_school')||'', v}); break; }
     case 'jstep': backDays = Math.min(Math.max(backDays + (+b.dataset.d), 0), 7); break;
     case 'jyesterday': go('jishu'); backDays = 1; render(); return;
     case 'backfill': backDays = +b.dataset.n||1; go('night1'); return;
