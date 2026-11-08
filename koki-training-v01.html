@@ -258,7 +258,7 @@ const CASQ_EP = [
   {date:'2025-06-25', school:'蒲田', v:{t10:2.13, t30:5.36, react:2.73, agi:5.68, broad:153, vert:36}},
   {date:'2025-12-10', school:'蒲田', v:{t10:2.08, t30:5.25, react:2.68, agi:5.60, broad:162}},
   {date:'2026-04-27', school:'東陽町', v:{t10:2.15, t30:5.15, react:2.70, agi:5.72, broad:164, vert:42}},
-  {date:'2026-09-14', school:'東陽町', v:{t30:5.58, react:2.68, agi:6.01, broad:160, vert:41}},
+  {date:'2026-09-14', school:'東陽町', v:{t10:2.37, t30:5.58, react:2.68, agi:6.01, broad:160, vert:41}},
 ];
 function casqAll(){ const m = {}; CASQ_EP.concat(S.casq||[]).forEach(e=>{ m[e.date] = e; }); return Object.values(m).sort((a,b)=>a.date<b.date?-1:1); }
 function protoVids(P){ return (P.ex||[]).filter(x=>!x[4] && x[5]).map(x=>x[5]); }
