@@ -263,7 +263,7 @@ const CASQ_EP = [
 function casqAll(){ const m = {}; CASQ_EP.concat(S.casq||[]).forEach(e=>{ m[e.date] = e; }); return Object.values(m).sort((a,b)=>a.date<b.date?-1:1); }
 /* --- スイミング進級テスト（100m個人メドレー） --- */
 const SWIM_EP = [
-  {date:'', label:'前回', t:123.00, level:''},
+  {date:'2026-05', label:'', t:123.00, level:'チャレンジ★4合格→アドバンス★2へ進級'},
   {date:'2026-11-19', label:'', t:121.83, level:'アドバンス★2', target:120.00},
 ];
 function swimAll(){ const m = {}; SWIM_EP.concat(S.swim||[]).forEach(e=>{ m[(e.date||'')+'|'+(e.label||'')] = e; }); return Object.values(m).sort((a,b)=>(a.date||'')<(b.date||'')?-1:1); }
