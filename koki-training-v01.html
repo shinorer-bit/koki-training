@@ -261,6 +261,13 @@ const CASQ_EP = [
   {date:'2026-09-14', school:'東陽町', v:{t10:2.37, t30:5.58, react:2.68, agi:6.01, broad:160, vert:41}},
 ];
 function casqAll(){ const m = {}; CASQ_EP.concat(S.casq||[]).forEach(e=>{ m[e.date] = e; }); return Object.values(m).sort((a,b)=>a.date<b.date?-1:1); }
+/* --- スイミング進級テスト（100m個人メドレー） --- */
+const SWIM_EP = [
+  {date:'', label:'前回', t:123.00, level:''},
+  {date:'2026-11-19', label:'', t:121.83, level:'アドバンス★2', target:120.00},
+];
+function swimAll(){ const m = {}; SWIM_EP.concat(S.swim||[]).forEach(e=>{ m[(e.date||'')+'|'+(e.label||'')] = e; }); return Object.values(m).sort((a,b)=>(a.date||'')<(b.date||'')?-1:1); }
+function swFmt(t){ const m = Math.floor(t/60), r = t-m*60; return m+'分'+(r<10?'0':'')+r.toFixed(2)+'秒'; }
 function protoVids(P){ return (P.ex||[]).filter(x=>!x[4] && x[5]).map(x=>x[5]); }
 
 const GROUPS = [
@@ -364,6 +371,7 @@ function mergeState(o){
   if(o.doneLocal){ S.doneLocal = Object.assign({}, o.doneLocal, S.doneLocal||{}); }
   (o.tests||[]).forEach(t=>{ S.tests = S.tests||[]; if(!S.tests.some(x=>x.date===t.date && x.label===t.label)) S.tests.push(t); });
   (o.casq||[]).forEach(e=>{ S.casq = S.casq||[]; if(!S.casq.some(x=>x.date===e.date)) S.casq.push(e); });
+  (o.swim||[]).forEach(e=>{ S.swim = S.swim||[]; if(!S.swim.some(x=>x.date===e.date)) S.swim.push(e); });
   if(o.seen && o.seen.maxLv > ((S.seen||{}).maxLv||1)){ S.seen = S.seen||{}; S.seen.maxLv = o.seen.maxLv; }
 }
 let pullBusy = false, pullAt = 0;
@@ -997,6 +1005,7 @@ function vStatus(){
   <div class="grid2">
     <button class="panel" data-go="games" style="text-align:left"><h2>試合の記録</h2><span class="small muted">通算成績と試合ごとの結果</span></button>
     <button class="panel" data-go="casq" style="text-align:left"><h2>キャスク測定会</h2><span class="small muted">自己ベストと記録の推移</span></button>
+    <button class="panel" data-go="swim" style="text-align:left"><h2>スイミング進級テスト</h2><span class="small muted">100m個人メドレーのタイム</span></button>
     <button class="panel" data-go="body" style="text-align:left"><h2>からだの記録</h2><span class="small muted">身長（週1回）</span></button>
   </div>
   ${(S.growth||[]).length?`<section class="panel stack" style="gap:8px;border-color:rgba(143,187,230,.45)"><span class="label" style="color:var(--t7)">⑦ 人として成長：パパ・ママからの記録</span>
@@ -1187,6 +1196,31 @@ function vCasq(){
       <button class="btn ghost" data-act="casqAdd">この結果を保存</button><p id="cqmsg" class="small" style="color:var(--gold)"></p>
     </div></details>`;
 }
+function vSwim(){
+  const E = swimAll(); const last = E[E.length-1]; const prev = E.length>1 ? E[E.length-2] : null;
+  const tgt = (last && last.target) || 120.00;
+  const best = Math.min(...E.map(e=>e.t));
+  return hdr('スイミング進級テスト','status')+`
+  <section class="panel stack" style="gap:6px"><span class="label">100m個人メドレー</span>
+    <div class="row"><span class="big" style="font-size:34px">${swFmt(last.t)}</span>${last.t<=best?'<span class="tag gold">自己ベスト！</span>':''}</div>
+    ${prev?`<span class="small" style="color:var(--ok);font-weight:900">前回 ${swFmt(prev.t)} → ${(prev.t-last.t).toFixed(2)}秒 はやくなった</span>`:''}
+    ${last.level?`<span class="small">いまのクラス：${esc(last.level)}</span>`:''}
+    <span class="small">次の目標：${swFmt(tgt)}をきると、アドバンス★3に進級（あと ${Math.max(0,last.t-tgt).toFixed(2)}秒）</span>
+    <span class="small muted">進級テストは3か月に1回。次は2027年2月ごろ。</span>
+  </section>
+  <section class="panel stack" style="gap:6px"><span class="label">これまでのタイム</span>
+    ${E.map(e=>`<div class="row"><span class="small muted grow">${esc(e.date?e.date.slice(2).replace(/-/g,'/'):(e.label||''))}${e.level?'・'+esc(e.level):''}</span><span class="num small" style="font-weight:900">${swFmt(e.t)}</span></div>`).join('')}
+  </section>
+  <details class="panel"><summary class="small">新しい進級テストの結果を入れる（おうちの人）</summary>
+    <div class="stack" style="gap:8px;margin-top:8px">
+      <label class="small" for="sw_date">日付</label><input id="sw_date" type="date">
+      <label class="small" for="sw_min">タイム（分）</label><input id="sw_min" type="number" inputmode="numeric" value="2">
+      <label class="small" for="sw_sec">タイム（秒・小数2けた）</label><input id="sw_sec" type="number" inputmode="decimal" step="0.01" placeholder="例 01.83">
+      <label class="small" for="sw_level">クラス</label><input id="sw_level" type="text" value="アドバンス★2">
+      <label class="small" for="sw_tgt">次の目標タイム（秒）</label><input id="sw_tgt" type="number" inputmode="decimal" step="0.01" value="120">
+      <button class="btn ghost" data-act="swimAdd">この結果を保存</button><p id="swmsg" class="small" style="color:var(--gold)"></p>
+    </div></details>`;
+}
 /* --- からだの記録（身長） --- */
 function heights(){ return Object.keys(S.days).sort().filter(k=>S.days[k].height).map(k=>({k, v:S.days[k].height})); }
 function vBody(){
@@ -1205,7 +1239,7 @@ function vBody(){
   ${H.length?`<section class="stack" style="gap:6px"><span class="label">これまでの記録</span>${H.slice().reverse().map(h=>`<div class="row panel" style="padding-block:8px"><span class="small grow">${md(parseDk(h.k))}</span><span class="num">${h.v} cm</span></div>`).join('')}</section>`:''}
   <p class="small muted">体重は体重計のアプリで確認します。ここでは朝のチェックで「はかった」をタップ</p>`;
 }
-const VIEWS = {games:vGames, casq:vCasq, body:vBody, proto:vProto, home:vHome, morning:vMorning, back1:vBack1, back2:vBack2, jishu:vJishu, night1:vNight1, night2:vNight2, status:vStatus, parent:vParent};
+const VIEWS = {games:vGames, casq:vCasq, swim:vSwim, body:vBody, proto:vProto, home:vHome, morning:vMorning, back1:vBack1, back2:vBack2, jishu:vJishu, night1:vNight1, night2:vNight2, status:vStatus, parent:vParent};
 let lastTotal = null, lastLv = null;
 function render(){
   if(ytPlayer && view!=='proto'){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer = null; }
@@ -1272,6 +1306,10 @@ document.addEventListener('click', e=>{
       if(!d){ msg.textContent = '日付を入れてください'; return; } const v = {}; CASQ_ITEMS.forEach(it=>{ const x = parseFloat(g('cq_'+it.id)); if(isFinite(x)) v[it.id] = x; });
       if(!Object.keys(v).length){ msg.textContent = '記録を1つ以上入れてください'; return; }
       S.casq = (S.casq||[]).filter(e=>e.date!==d); S.casq.push({date:d, school:g('cq_school')||'', v}); break; }
+    case 'swimAdd': { const g = id=>document.getElementById(id).value; const d = g('sw_date'); const msg = document.getElementById('swmsg');
+      const mi = parseInt(g('sw_min'),10), se = parseFloat(g('sw_sec')); if(!d){ msg.textContent = '日付を入れてください'; return; }
+      if(!(mi>=0) || !isFinite(se)){ msg.textContent = 'タイムを入れてください'; return; }
+      const tg = parseFloat(g('sw_tgt')); S.swim = (S.swim||[]).filter(e=>e.date!==d); S.swim.push({date:d, t:Math.round((mi*60+se)*100)/100, level:g('sw_level')||'', target:isFinite(tg)?tg:undefined}); break; }
     case 'jstep': backDays = Math.min(Math.max(backDays + (+b.dataset.d), 0), 7); break;
     case 'jyesterday': go('jishu'); backDays = 1; render(); return;
     case 'backfill': backDays = +b.dataset.n||1; go('night1'); return;
