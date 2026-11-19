@@ -263,6 +263,9 @@ const CASQ_EP = [
 function casqAll(){ const m = {}; CASQ_EP.concat(S.casq||[]).forEach(e=>{ m[e.date] = e; }); return Object.values(m).sort((a,b)=>a.date<b.date?-1:1); }
 /* --- スイミング進級テスト（100m個人メドレー） --- */
 const SWIM_EP = [
+  {date:'2024-05', t:195.76, level:'2級', up:'S11級へ進級', note:'種目名の表示なし'},
+  {date:'2024-08', t:156.41, level:'S11級', up:'S10級へ進級'},
+  {date:'2024-11', t:154.35, level:'S10級'},
   {date:'2025-02', t:142.60, level:'S10級', up:'S9級へ進級'},
   {date:'2025-05', t:141.66, level:'S9級'},
   {date:'2025-08', t:137.00, level:'S9級'},
@@ -1205,9 +1208,9 @@ function vCasq(){
 function vSwim(){
   const E = swimAll(); const last = E[E.length-1]; const prev = E.length>1 ? E[E.length-2] : null;
   const tgt = (last && last.target) || 120.00;
-  const bestBefore = E.length>1 ? Math.min(...E.slice(0,-1).map(e=>e.t)) : null;
+  const bestBefore = E.length>1 ? Math.min(...E.slice(0,-1).filter(e=>!e.note).map(e=>e.t)) : null;
   const isPB = bestBefore==null || last.t<bestBefore;
-  const first = E[0];
+  const first = E.find(e=>!e.note);
   return hdr('スイミング進級テスト','status')+`
   <section class="panel stack" style="gap:6px"><span class="label">100m個人メドレー</span>
     <div class="row"><span class="big" style="font-size:34px">${swFmt(last.t)}</span>${isPB?'<span class="tag gold">自己ベスト！</span>':''}</div>
@@ -1219,7 +1222,7 @@ function vSwim(){
     <span class="small muted">進級テストは3か月に1回（2・5・8・11月）。次は2027年2月。</span>
   </section>
   <section class="panel stack" style="gap:6px"><span class="label">これまでのタイム</span>
-    ${E.map(e=>{ const pb = e.t===Math.min(...E.map(x=>x.t)); return `<div class="row"><span class="small muted grow">${esc(e.date.slice(2,7).replace('-','/'))}・${esc(e.level||'')}${e.up?'<br><b style="color:var(--gold)">★ '+esc(e.up)+'</b>':''}</span><span class="num small" style="font-weight:900;${pb?'color:var(--gold)':''}">${swFmt(e.t)}</span></div>`; }).join('')}
+    ${E.map(e=>{ const pb = !e.note && e.t===Math.min(...E.filter(x=>!x.note).map(x=>x.t)); return `<div class="row"><span class="small muted grow">${esc(e.date.slice(2,7).replace('-','/'))}・${esc(e.level||'')}${e.up?'<br><b style="color:var(--gold)">★ '+esc(e.up)+'</b>':''}${e.note?'<br><span class="small muted">（'+esc(e.note)+'）</span>':''}</span><span class="num small" style="font-weight:900;${pb?'color:var(--gold)':''}">${swFmt(e.t)}</span></div>`; }).join('')}
   </section>
   <details class="panel"><summary class="small">新しい進級テストの結果を入れる（おうちの人）</summary>
     <div class="stack" style="gap:8px;margin-top:8px">
