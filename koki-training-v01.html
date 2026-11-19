@@ -263,7 +263,7 @@ const CASQ_EP = [
 function casqAll(){ const m = {}; CASQ_EP.concat(S.casq||[]).forEach(e=>{ m[e.date] = e; }); return Object.values(m).sort((a,b)=>a.date<b.date?-1:1); }
 /* --- スイミング進級テスト（100m個人メドレー） --- */
 const SWIM_EP = [
-  {date:'2024-05', t:195.76, level:'2級', up:'S11級へ進級', note:'種目名の表示なし'},
+  {date:'2024-05', t:195.76, level:'2級', up:'S11級へ進級'},
   {date:'2024-08', t:156.41, level:'S11級', up:'S10級へ進級'},
   {date:'2024-11', t:154.35, level:'S10級'},
   {date:'2025-02', t:142.60, level:'S10級', up:'S9級へ進級'},
