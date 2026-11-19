@@ -263,10 +263,16 @@ const CASQ_EP = [
 function casqAll(){ const m = {}; CASQ_EP.concat(S.casq||[]).forEach(e=>{ m[e.date] = e; }); return Object.values(m).sort((a,b)=>a.date<b.date?-1:1); }
 /* --- スイミング進級テスト（100m個人メドレー） --- */
 const SWIM_EP = [
-  {date:'2026-05', label:'', t:123.00, level:'チャレンジ★4合格→アドバンス★2へ進級'},
-  {date:'2026-11-19', label:'', t:121.83, level:'アドバンス★2', target:120.00},
+  {date:'2025-02', t:142.60, level:'S10級', up:'S9級へ進級'},
+  {date:'2025-05', t:141.66, level:'S9級'},
+  {date:'2025-08', t:137.00, level:'S9級'},
+  {date:'2025-11', t:142.26, level:'S9級'},
+  {date:'2026-02', t:134.30, level:'S9級', up:'S8級へ進級'},
+  {date:'2026-05', t:123.00, level:'チャレンジ★4', up:'アドバンス★2へ進級'},
+  {date:'2026-08', t:125.75, level:'アドバンス★2'},
+  {date:'2026-11-19', t:121.83, level:'アドバンス★2', target:120.00},
 ];
-function swimAll(){ const m = {}; SWIM_EP.concat(S.swim||[]).forEach(e=>{ m[(e.date||'')+'|'+(e.label||'')] = e; }); return Object.values(m).sort((a,b)=>(a.date||'')<(b.date||'')?-1:1); }
+function swimAll(){ const m = {}; SWIM_EP.concat(S.swim||[]).forEach(e=>{ m[e.date||''] = e; }); return Object.values(m).sort((a,b)=>a.date<b.date?-1:1); }
 function swFmt(t){ const m = Math.floor(t/60), r = t-m*60; return m+'分'+(r<10?'0':'')+r.toFixed(2)+'秒'; }
 function protoVids(P){ return (P.ex||[]).filter(x=>!x[4] && x[5]).map(x=>x[5]); }
 
@@ -1199,17 +1205,21 @@ function vCasq(){
 function vSwim(){
   const E = swimAll(); const last = E[E.length-1]; const prev = E.length>1 ? E[E.length-2] : null;
   const tgt = (last && last.target) || 120.00;
-  const best = Math.min(...E.map(e=>e.t));
+  const bestBefore = E.length>1 ? Math.min(...E.slice(0,-1).map(e=>e.t)) : null;
+  const isPB = bestBefore==null || last.t<bestBefore;
+  const first = E[0];
   return hdr('スイミング進級テスト','status')+`
   <section class="panel stack" style="gap:6px"><span class="label">100m個人メドレー</span>
-    <div class="row"><span class="big" style="font-size:34px">${swFmt(last.t)}</span>${last.t<=best?'<span class="tag gold">自己ベスト！</span>':''}</div>
-    ${prev?`<span class="small" style="color:var(--ok);font-weight:900">前回 ${swFmt(prev.t)} → ${(prev.t-last.t).toFixed(2)}秒 はやくなった</span>`:''}
+    <div class="row"><span class="big" style="font-size:34px">${swFmt(last.t)}</span>${isPB?'<span class="tag gold">自己ベスト！</span>':''}</div>
+    ${isPB&&bestBefore!=null?`<span class="small" style="color:var(--ok);font-weight:900">これまでのベスト ${swFmt(bestBefore)} を ${(bestBefore-last.t).toFixed(2)}秒 更新</span>`:''}
+    ${prev?`<span class="small">前回（${esc(prev.date.slice(0,7).replace('-','/'))}）${swFmt(prev.t)} → ${(prev.t-last.t>=0?'':'+')+(last.t-prev.t>0?(last.t-prev.t).toFixed(2):(prev.t-last.t).toFixed(2))}秒${prev.t-last.t>=0?' はやくなった':' おそくなった'}</span>`:''}
+    ${first&&first!==last?`<span class="small" style="color:var(--gold);font-weight:900">${esc(first.date.slice(0,7).replace('-','/'))}の ${swFmt(first.t)} から ${(first.t-last.t).toFixed(2)}秒 はやくなった！</span>`:''}
     ${last.level?`<span class="small">いまのクラス：${esc(last.level)}</span>`:''}
     <span class="small">次の目標：${swFmt(tgt)}をきると、アドバンス★3に進級（あと ${Math.max(0,last.t-tgt).toFixed(2)}秒）</span>
-    <span class="small muted">進級テストは3か月に1回。次は2027年2月ごろ。</span>
+    <span class="small muted">進級テストは3か月に1回（2・5・8・11月）。次は2027年2月。</span>
   </section>
   <section class="panel stack" style="gap:6px"><span class="label">これまでのタイム</span>
-    ${E.map(e=>`<div class="row"><span class="small muted grow">${esc(e.date?e.date.slice(2).replace(/-/g,'/'):(e.label||''))}${e.level?'・'+esc(e.level):''}</span><span class="num small" style="font-weight:900">${swFmt(e.t)}</span></div>`).join('')}
+    ${E.map(e=>{ const pb = e.t===Math.min(...E.map(x=>x.t)); return `<div class="row"><span class="small muted grow">${esc(e.date.slice(2,7).replace('-','/'))}・${esc(e.level||'')}${e.up?'<br><b style="color:var(--gold)">★ '+esc(e.up)+'</b>':''}</span><span class="num small" style="font-weight:900;${pb?'color:var(--gold)':''}">${swFmt(e.t)}</span></div>`; }).join('')}
   </section>
   <details class="panel"><summary class="small">新しい進級テストの結果を入れる（おうちの人）</summary>
     <div class="stack" style="gap:8px;margin-top:8px">
